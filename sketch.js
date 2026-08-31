@@ -1,52 +1,66 @@
-// ============================================================
+// =====================================================
 // TP2 — SISTEMA DE 9 INTERFACES REACTIVAS
 // p5.js + MediaPipe Hands
-// ============================================================
+// HOME + 9 EXPERIENCIAS
+// =====================================================
 
 
-// ============================================================
-// VARIABLES GENERALES
-// ============================================================
+// =====================================================
+// CONFIGURACIÓN GENERAL
+// =====================================================
 
 let video;
 let handsDetector;
-let hands = [];
+let cameraMediaPipe;
 
+let hands = [];
 let yemas = [];
 
 let experienciaActual = 0;
 
 const duracionExperiencia = 10;
+let tiempoInicio = 0;
 
-let tiempoInicio;
+let enHome = true;
+let guiaMostradaInteraccion = true;
 
 
-// ============================================================
+// =====================================================
 // CONCEPTOS
-// ============================================================
+// =====================================================
 
 const conceptos = [
+  "Memoria",
+  "Herencia",
+  "Caducidad",
 
-  ["MEMORIA", "como registro"],
-  ["HERENCIA", "como legado"],
-  ["CADUCIDAD", "como lo perdido en el tránsito"],
+  "Identidad",
+  "Empatía",
+  "Colaboración",
 
-  ["IDENTIDAD", "como afirmación de sí"],
-  ["EMPATÍA", "como comprensión del otro"],
-  ["COLABORACIÓN", "como coexistencia de lo diverso"],
+  "Incertidumbre",
+  "Ansiedad",
+  "Expectativa"
+];
 
-  ["INCERTIDUMBRE", "como desconocimiento del devenir"],
-  ["ANSIEDAD", "como preocupación sobre el futuro"],
-  ["EXPECTATIVA", "como anticipación"]
+const subtitulos = [
+  "como registro",
+  "como legado",
+  "como lo perdido en el tránsito",
 
+  "como afirmación de sí",
+  "como comprensión del otro",
+  "como coexistencia de lo diverso",
+
+  "como desconocimiento del devenir",
+  "como pre-ocupación sobre el futuro",
+  "como anticipación"
 ];
 
 
-// ============================================================
+// =====================================================
 // COLORES
-// ============================================================
-
-// FILA 1 — AZUL + AMARILLO
+// =====================================================
 
 const AZUL = {
   r: 40,
@@ -60,8 +74,17 @@ const AMARILLO = {
   b: 40
 };
 
+const NARANJA = {
+  r: 255,
+  g: 135,
+  b: 45
+};
 
-// VERDE — mezcla de azul + amarillo
+const FUCSIA = {
+  r: 240,
+  g: 50,
+  b: 180
+};
 
 const VERDE = {
   r: 100,
@@ -70,87 +93,121 @@ const VERDE = {
 };
 
 
-// FILA 2 — AZUL + NARANJA
+// =====================================================
+// TAMAÑOS
+// =====================================================
 
-const NARANJA = {
-  r: 255,
-  g: 135,
-  b: 45
-};
+const TAM_CIRCULO = 48;
 
-
-// FILA 3 — FUCSIA + NARANJA
-
-const FUCSIA = {
-  r: 240,
-  g: 50,
-  b: 180
-};
+const MAX_IDENTIDAD =
+  TAM_CIRCULO * 5;
 
 
-// ============================================================
-// VARIABLES DE EXPERIENCIAS
-// ============================================================
+// =====================================================
+// DEDOS MEDIAPIPE
+// =====================================================
 
+const dedos = [
+  4,
+  8,
+  12,
+  16,
+  20
+];
+
+
+// =====================================================
+// GUÍA DE LAS MANOS
+// =====================================================
+
+const guiaMano = [
+
+  // meñique
+  {
+    x: -130,
+    y: 65
+  },
+
+  // índice
+  {
+    x: -65,
+    y: -55
+  },
+
+  // medio
+  {
+    x: 0,
+    y: -100
+  },
+
+  // anular
+  {
+    x: 65,
+    y: -55
+  },
+
+  // pulgar
+  {
+    x: 145,
+    y: 15
+  }
+
+];
+
+
+// =====================================================
+// ESTADOS
+// =====================================================
+
+// MEMORIA
 let estelas = [];
 
 
 // HERENCIA
-
-let herenciaEstados = {};
-
-let herenciasNuevas = [];
+let herencias = [];
+let contactosHerencia = {};
 
 
 // CADUCIDAD
+let circulosCaducidad = [];
+let prevYemasCaducidad = {};
 
-let particulasCaducidad = [];
 
-let posicionesAnteriores = [];
-
-let ultimaCaida = 0;
+// IDENTIDAD
+let identidades = [];
+let identidadEstado = [];
+let contactosIdentidad = {};
 
 
 // EMPATÍA
+let empatiaIluminacion = [true, false];
+let ultimoContactoEmpatia = 0;
 
-let empatiaEstados = [];
+const TIEMPO_APAGADO_EMPATIА = 2000;
+
+
+// COLABORACIÓN
+let colaboracionBrillo = 0;
 
 
 // INCERTIDUMBRE
-
-let formasIncertidumbre = [];
-
-let ultimoCambioForma = 0;
+let coloresIncertidumbre = [];
+let contactosIncertidumbre = {};
 
 
 // ANSIEDAD
-
-let ansiedadTiempo = 0;
-
-
-// ============================================================
-// IDENTIDAD
-// ============================================================
-
-let identidadActivadas = [];
-
-let identidadUltimaPosicion = null;
-
-let identidadMovimiento = 0;
-
-let identidadPulso = 0;
+let ansiedadFases = [];
+let ansiedadColisionIniciada = false;
+let tiempoInicioAnsiedadColision = 0;
 
 
-// ============================================================
-// DEDOS DE MEDIAPIPE
-// ============================================================
-
-const dedos = [4, 8, 12, 16, 20];
+// EXPECTATIVA
+let patronExpectativa = [];
 
 
-// ============================================================
+// =====================================================
 // SETUP
-// ============================================================
+// =====================================================
 
 function setup() {
 
@@ -162,9 +219,9 @@ function setup() {
   pixelDensity(1);
 
 
-  // ==========================================================
+  // ---------------------------------------------
   // CÁMARA
-  // ==========================================================
+  // ---------------------------------------------
 
   video = createCapture(VIDEO);
 
@@ -176,15 +233,15 @@ function setup() {
   video.hide();
 
 
-  // ==========================================================
+  // ---------------------------------------------
   // MEDIAPIPE
-  // ==========================================================
+  // ---------------------------------------------
 
   handsDetector = new Hands({
 
-    locateFile: function(file) {
+    locateFile: (file) => {
 
-      return "https://cdn.jsdelivr.net/npm/@mediapipe/hands/" + file;
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
 
     }
 
@@ -195,49 +252,56 @@ function setup() {
 
     maxNumHands: 2,
 
-    modelComplexity: 0,
+    modelComplexity: 1,
 
-    minDetectionConfidence: 0.5,
+    minDetectionConfidence: 0.6,
 
-    minTrackingConfidence: 0.5
+    minTrackingConfidence: 0.6
 
   });
 
 
   handsDetector.onResults(
-    recibirManos
+    recibirResultados
   );
 
 
-  // ==========================================================
-  // CÁMARA + MEDIAPIPE
-  // ==========================================================
+  // ---------------------------------------------
+  // CÁMARA MEDIAPIPE
+  // ---------------------------------------------
 
-  const camera = new Camera(
-
+  cameraMediaPipe = new Camera(
     video.elt,
-
     {
 
-      onFrame: async function() {
+      onFrame: async () => {
 
-        await handsDetector.send({
+        if (video && video.elt && video.elt.readyState >= 2) {
 
-          image: video.elt
+          try {
 
-        });
+            await handsDetector.send({
+              image: video.elt
+            });
+
+          } catch (err) {
+
+            console.warn("Error en frame MediaPipe:", err);
+
+          }
+
+        }
 
       },
 
       width: 640,
-
       height: 480
 
     }
-
   );
 
-  camera.start();
+
+  cameraMediaPipe.start();
 
 
   iniciarExperiencia();
@@ -245,39 +309,34 @@ function setup() {
 }
 
 
-// ============================================================
-// RECIBIR MANOS
-// ============================================================
+// =====================================================
+// RESULTADOS MEDIAPIPE
+// =====================================================
 
-function recibirManos(resultado) {
+function recibirResultados(resultados) {
 
-  if (resultado.multiHandLandmarks) {
-
-    hands =
-      resultado.multiHandLandmarks;
-
-  }
-
-  else {
-
-    hands = [];
-
-  }
+  hands =
+    resultados.multiHandLandmarks || [];
 
 }
 
 
-// ============================================================
+// =====================================================
 // DRAW
-// ============================================================
+// =====================================================
 
 function draw() {
 
-  background(
-    12,
-    12,
-    15
-  );
+  background(5);
+
+
+  if (enHome) {
+
+    dibujarHome();
+
+    return;
+
+  }
 
 
   actualizarYemas();
@@ -324,18 +383,517 @@ function draw() {
   }
 
 
-  dibujarTitulo();
+  dibujarTituloExperiencia();
+
+  dibujarBotonVolver();
+
+  dibujarBotonSiguiente();
 
   dibujarBarraTiempo();
 
-  controlarTiempo();
+  controlarCambioAutomatico();
 
 }
 
 
-// ============================================================
+// =====================================================
+// HOME
+// =====================================================
+
+function dibujarHome() {
+
+  // ---------------------------------------------
+  // CONFIGURACIÓN DE LA GRILLA
+  // ---------------------------------------------
+
+  const columnas = 3;
+  const filas = 3;
+
+  const anchoCelda =
+    width / columnas;
+
+  const altoCelda =
+    height / filas;
+
+
+  // ---------------------------------------------
+  // CADA EXPERIENCIA
+  // ---------------------------------------------
+
+  for (
+    let i = 0;
+    i < 9;
+    i++
+  ) {
+
+    const columna =
+      i % 3;
+
+    const fila =
+      floor(i / 3);
+
+
+    const centroX =
+      columna * anchoCelda +
+      anchoCelda / 2;
+
+
+    const centroY =
+      fila * altoCelda +
+      altoCelda / 2;
+
+
+    const colorTitulo =
+      colorTituloConcepto(i);
+
+
+    // -------------------------------------------
+    // HOVER
+    // -------------------------------------------
+
+    const hover =
+      mouseX >=
+      columna * anchoCelda &&
+
+      mouseX <
+      (columna + 1) *
+      anchoCelda &&
+
+      mouseY >=
+      fila * altoCelda &&
+
+      mouseY <
+      (fila + 1) *
+      altoCelda;
+
+
+    // -------------------------------------------
+    // CÍRCULOS DE FONDO
+    // -------------------------------------------
+
+    dibujarCirculosHome(
+      i,
+      centroX,
+      centroY,
+      hover
+    );
+
+
+    // -------------------------------------------
+    // TÍTULO
+    // -------------------------------------------
+
+    noStroke();
+
+
+    if (hover) {
+
+      fill(
+        colorTitulo.r,
+        colorTitulo.g,
+        colorTitulo.b
+      );
+
+    } else {
+
+      fill(
+        colorTitulo.r,
+        colorTitulo.g,
+        colorTitulo.b,
+        210
+      );
+
+    }
+
+
+    textAlign(
+      CENTER,
+      CENTER
+    );
+
+
+    textSize(
+      min(
+        width * 0.027,
+        30
+      )
+    );
+
+
+    textStyle(BOLD);
+
+
+    text(
+      conceptos[i],
+      centroX,
+      centroY - 8
+    );
+
+
+    // -------------------------------------------
+    // SUBTÍTULO
+    // -------------------------------------------
+
+    fill(
+      255,
+      hover ? 190 : 110
+    );
+
+
+    textSize(
+      min(
+        width * 0.012,
+        14
+      )
+    );
+
+
+    textStyle(NORMAL);
+
+
+    text(
+      `(${subtitulos[i]})`,
+      centroX,
+      centroY + 28
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// COLOR DEL TÍTULO SEGÚN BLOQUE
+// =====================================================
+
+function colorTituloConcepto(indice) {
+
+  // PASADO
+  if (indice <= 2) {
+
+    return AZUL;
+
+  }
+
+
+  // PRESENTE
+  if (indice <= 5) {
+
+    return NARANJA;
+
+  }
+
+
+  // FUTURO
+  return FUCSIA;
+
+}
+
+
+// =====================================================
+// CÍRCULOS DE FONDO DE LA HOME
+// =====================================================
+
+function dibujarCirculosHome(
+  indice,
+  centroX,
+  centroY,
+  hover
+) {
+
+  let colores;
+
+
+  // ---------------------------------------------
+  // PASADO
+  // ---------------------------------------------
+
+  if (indice <= 2) {
+
+    colores = [
+      AZUL,
+      AMARILLO
+    ];
+
+  }
+
+
+  // ---------------------------------------------
+  // PRESENTE
+  // ---------------------------------------------
+
+  else if (indice <= 5) {
+
+    colores = [
+      AZUL,
+      NARANJA
+    ];
+
+  }
+
+
+  // ---------------------------------------------
+  // FUTURO
+  // ---------------------------------------------
+
+  else {
+
+    colores = [
+      NARANJA,
+      FUCSIA
+    ];
+
+  }
+
+
+  // ---------------------------------------------
+  // POSICIONES
+  // ---------------------------------------------
+  // SE MANTIENE UNA DISPOSICIÓN
+  // TIPO MANO DETRÁS DEL TEXTO
+  // ---------------------------------------------
+
+  const posiciones = [
+
+    {
+      x: -65,
+      y: 42
+    },
+
+    {
+      x: -32,
+      y: -28
+    },
+
+    {
+      x: 0,
+      y: -48
+    },
+
+    {
+      x: 32,
+      y: -28
+    },
+
+    {
+      x: 65,
+      y: 20
+    }
+
+  ];
+
+
+  // ---------------------------------------------
+  // SEGUNDA MANO
+  // ---------------------------------------------
+
+  const posicionesDerecha = [
+
+    {
+      x: -65,
+      y: 42
+    },
+
+    {
+      x: -32,
+      y: -28
+    },
+
+    {
+      x: 0,
+      y: -48
+    },
+
+    {
+      x: 32,
+      y: -28
+    },
+
+    {
+      x: 65,
+      y: 20
+    }
+
+  ];
+
+
+  // ---------------------------------------------
+  // ESCALA
+  // ---------------------------------------------
+
+  const escala =
+    min(
+      anchoSeguroHome(),
+      1
+    );
+
+
+  // ---------------------------------------------
+  // CÍRCULOS
+  // ---------------------------------------------
+
+  for (
+    let i = 0;
+    i < 5;
+    i++
+  ) {
+
+    const p =
+      posiciones[i];
+
+
+    const color =
+      colores[0];
+
+
+    dibujarCirculoHome(
+
+      centroX +
+      p.x *
+      escala -
+      50,
+
+      centroY +
+      p.y *
+      escala,
+
+      TAM_CIRCULO * 0.72,
+
+      color,
+
+      hover
+
+    );
+
+  }
+
+
+  for (
+    let i = 0;
+    i < 5;
+    i++
+  ) {
+
+    const p =
+      posicionesDerecha[i];
+
+
+    const color =
+      colores[1];
+
+
+    dibujarCirculoHome(
+
+      centroX +
+      p.x *
+      escala +
+      50,
+
+      centroY +
+      p.y *
+      escala,
+
+      TAM_CIRCULO * 0.72,
+
+      color,
+
+      hover
+
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CÍRCULO INDIVIDUAL HOME
+// =====================================================
+
+function dibujarCirculoHome(
+  x,
+  y,
+  tam,
+  color,
+  hover
+) {
+
+  noStroke();
+
+
+  // brillo muy suave detrás
+  if (hover) {
+
+    fill(
+      color.r,
+      color.g,
+      color.b,
+      20
+    );
+
+
+    circle(
+      x,
+      y,
+      tam * 1.7
+    );
+
+  }
+
+
+  fill(
+    color.r,
+    color.g,
+    color.b,
+    hover
+      ? 120
+      : 55
+  );
+
+
+  circle(
+    x,
+    y,
+    tam
+  );
+
+}
+
+
+// =====================================================
+// ESCALA SEGURA HOME
+// =====================================================
+
+function anchoSeguroHome() {
+
+  return constrain(
+    width / 1000,
+    0.7,
+    1
+  );
+
+}
+
+
+// =====================================================
+// CLICK HOME
+// =====================================================
+
+// =====================================================
+// CLICK HOME (CONSOLIDADO EN MOUSECLICKED)
+// =====================================================
+
+function mousePressed() {
+
+  // La gestión de clics completa se realiza en mouseClicked()
+  // para evitar conflictos de eventos entre funciones de p5.
+
+}
+
+
+// =====================================================
 // ACTUALIZAR YEMAS
-// ============================================================
+// =====================================================
 
 function actualizarYemas() {
 
@@ -344,11 +902,12 @@ function actualizarYemas() {
 
   for (
     let h = 0;
-    h < hands.length && h < 2;
+    h < hands.length;
     h++
   ) {
 
-    let mano = hands[h];
+    const mano =
+      hands[h];
 
 
     for (
@@ -357,11 +916,11 @@ function actualizarYemas() {
       d++
     ) {
 
-      let punto =
+      const punto =
         mano[dedos[d]];
 
 
-      let x = map(
+      const x = map(
         punto.x,
         0,
         1,
@@ -370,8 +929,9 @@ function actualizarYemas() {
       );
 
 
-      let y =
-        punto.y * height;
+      const y =
+        punto.y *
+        height;
 
 
       yemas.push({
@@ -388,118 +948,89 @@ function actualizarYemas() {
 
   }
 
-}
 
+  if (yemas.length > 0) {
 
-// ============================================================
-// CENTRO DE MANO
-// ============================================================
-
-function centroMano(numero) {
-
-  let puntos =
-    yemas.filter(
-      p => p.mano === numero
-    );
-
-
-  if (puntos.length === 0) {
-
-    return null;
+    guiaMostradaInteraccion = false;
 
   }
-
-
-  let x = 0;
-  let y = 0;
-
-
-  for (let p of puntos) {
-
-    x += p.x;
-    y += p.y;
-
-  }
-
-
-  return {
-
-    x: x / puntos.length,
-    y: y / puntos.length
-
-  };
 
 }
 
 
-// ============================================================
-// GUÍA — DOS MANOS
-// ============================================================
+// =====================================================
+// GUÍA
+// =====================================================
 
-function dibujarGuia() {
+function dibujarGuiaManos() {
 
-  let posiciones = [
-
-    [-70, 50],
-    [-35, 0],
-    [0, -25],
-    [35, 0],
-    [70, 50]
-
-  ];
+  const centroY =
+    height * 0.53;
 
 
-  // MANO IZQUIERDA
+  const centroIzquierda =
+    width * 0.30;
 
-  for (let p of posiciones) {
+
+  const centroDerecha =
+    width * 0.70;
+
+
+  for (
+    let i = 0;
+    i < guiaMano.length;
+    i++
+  ) {
+
+    const p =
+      guiaMano[i];
+
 
     noStroke();
 
-    fill(
 
+    fill(
       AZUL.r,
       AZUL.g,
       AZUL.b,
-      90
-
+      160
     );
 
 
     circle(
-
-      width / 2 - 220 + p[0],
-      height / 2 + p[1],
-
-      28
-
+      centroIzquierda - p.x,
+      centroY + p.y,
+      TAM_CIRCULO
     );
 
   }
 
 
-  // MANO DERECHA
+  for (
+    let i = 0;
+    i < guiaMano.length;
+    i++
+  ) {
 
-  for (let p of posiciones) {
+    const p =
+      guiaMano[i];
+
 
     noStroke();
 
-    fill(
 
+    fill(
       AMARILLO.r,
       AMARILLO.g,
       AMARILLO.b,
-      90
-
+      160
     );
 
 
     circle(
-
-      width / 2 + 220 + p[0],
-      height / 2 + p[1],
-
-      28
-
+      centroDerecha + p.x,
+      centroY + p.y,
+      TAM_CIRCULO
     );
 
   }
@@ -507,131 +1038,11 @@ function dibujarGuia() {
 }
 
 
-// ============================================================
-// GUÍA HERENCIA
-// ============================================================
+// =====================================================
+// TÍTULO EXPERIENCIA
+// =====================================================
 
-function dibujarGuiaHerencia() {
-
-  let posiciones = [
-
-    [-70, 50],
-    [-35, 0],
-    [0, -25],
-    [35, 0],
-    [70, 50]
-
-  ];
-
-
-  // MANO AZUL
-
-  for (let p of posiciones) {
-
-    noStroke();
-
-    fill(
-
-      AZUL.r,
-      AZUL.g,
-      AZUL.b,
-      100
-
-    );
-
-
-    circle(
-
-      width / 2 - 220 + p[0],
-      height / 2 + p[1],
-
-      30
-
-    );
-
-  }
-
-
-  // MANO AMARILLA
-
-  for (let p of posiciones) {
-
-    noStroke();
-
-    fill(
-
-      AMARILLO.r,
-      AMARILLO.g,
-      AMARILLO.b,
-      100
-
-    );
-
-
-    circle(
-
-      width / 2 + 220 + p[0],
-      height / 2 + p[1],
-
-      30
-
-    );
-
-  }
-
-}
-
-
-// ============================================================
-// GUÍA — UNA MANO
-// ============================================================
-
-function dibujarGuiaUnaMano() {
-
-  let posiciones = [
-
-    [-55, 35],
-    [-28, 0],
-    [0, -20],
-    [28, 0],
-    [55, 35]
-
-  ];
-
-
-  for (let p of posiciones) {
-
-    noStroke();
-
-    fill(
-
-      AZUL.r,
-      AZUL.g,
-      AZUL.b,
-      90
-
-    );
-
-
-    circle(
-
-      width / 2 + p[0],
-      height / 2 + p[1],
-
-      28
-
-    );
-
-  }
-
-}
-
-
-// ============================================================
-// TÍTULO
-// ============================================================
-
-function dibujarTitulo() {
+function dibujarTituloExperiencia() {
 
   textAlign(
     CENTER,
@@ -641,124 +1052,270 @@ function dibujarTitulo() {
 
   noStroke();
 
-  fill(255);
+
+  const color =
+    colorTituloConcepto(
+      experienciaActual
+    );
+
+
+  fill(
+    color.r,
+    color.g,
+    color.b
+  );
 
 
   textSize(
     min(
-      width * 0.035,
-      32
+      width * 0.025,
+      28
     )
   );
 
 
+  textStyle(BOLD);
+
+
   text(
-
-    conceptos[experienciaActual][0],
-
+    conceptos[experienciaActual],
     width / 2,
-    40
-
+    45
   );
+
+
+  textStyle(NORMAL);
 
 }
 
 
-// ============================================================
-// BARRA DE TIEMPO
-// ============================================================
+// =====================================================
+// BOTÓN VOLVER
+// =====================================================
 
-function dibujarBarraTiempo() {
+function dibujarBotonVolver() {
 
-  let transcurrido = (
+  const x = 35;
+  const y = 35;
 
-    millis() -
-    tiempoInicio
-
-  ) / 1000;
-
-
-  let progreso = constrain(
-
-    transcurrido /
-    duracionExperiencia,
-
-    0,
-    1
-
-  );
-
+  const hovering = dist(mouseX, mouseY, x, y) < 25;
 
   noStroke();
 
+  if (hovering) {
+    fill(255, 50);
+    circle(x, y, 36);
+    fill(255);
+  } else {
+    fill(255, 130);
+  }
 
-  fill(
-    255,
-    255,
-    255,
-    30
+  textAlign(
+    CENTER,
+    CENTER
   );
 
+  textSize(24);
 
-  rect(
-
-    60,
-    height - 25,
-    width - 120,
-    2
-
-  );
-
-
-  fill(255);
-
-
-  rect(
-
-    60,
-    height - 25,
-
-    (width - 120) *
-    progreso,
-
-    2
-
+  text(
+    "×",
+    x,
+    y
   );
 
 }
 
 
-// ============================================================
-// CONTROL DEL TIEMPO
-// ============================================================
+// =====================================================
+// BOTÓN SIGUIENTE
+// =====================================================
 
-function controlarTiempo() {
+function dibujarBotonSiguiente() {
 
-  let transcurrido = (
+  const x = width - 65;
+  const y = 35;
 
-    millis() -
-    tiempoInicio
+  const hovering = dist(mouseX, mouseY, x, y) < 40;
 
-  ) / 1000;
+  noStroke();
 
+  fill(255, hovering ? 60 : 30);
+  rectMode(CENTER);
+  rect(x, y, 100, 32, 16);
+  rectMode(CORNER);
+
+  fill(255, hovering ? 255 : 190);
+  textAlign(CENTER, CENTER);
+  textSize(13);
+  textStyle(BOLD);
+  text("Siguiente ›", x, y);
+  textStyle(NORMAL);
+
+}
+
+
+// =====================================================
+// TECLADO
+// =====================================================
+
+function keyPressed() {
+
+  // ---------------------------------------------
+  // VOLVER A HOME
+  // ---------------------------------------------
 
   if (
+    key === "x" ||
+    key === "X" ||
+    keyCode === ESCAPE
+  ) {
 
-    transcurrido >=
-    duracionExperiencia
+    enHome = true;
 
+    return;
+
+  }
+
+
+  if (enHome) {
+
+    return;
+
+  }
+
+
+  // ---------------------------------------------
+  // SIGUIENTE
+  // ---------------------------------------------
+
+  if (
+    keyCode === RIGHT_ARROW
   ) {
 
     siguienteExperiencia();
 
   }
 
+
+  // ---------------------------------------------
+  // ANTERIOR
+  // ---------------------------------------------
+
+  if (
+    keyCode === LEFT_ARROW
+  ) {
+
+    experienciaAnterior();
+
+  }
+
+
+  // ---------------------------------------------
+  // NÚMEROS
+  // ---------------------------------------------
+
+  if (
+    key >= "1" &&
+    key <= "9"
+  ) {
+
+    experienciaActual =
+      Number(key) - 1;
+
+
+    iniciarExperiencia();
+
+  }
+
 }
 
 
-// ============================================================
-// SIGUIENTE EXPERIENCIA
-// ============================================================
+// =====================================================
+// CLICK EN BOTONES
+// =====================================================
+
+// =====================================================
+// CLICK EN BOTONES Y HOME
+// =====================================================
+
+function mouseClicked() {
+
+  // ---------------------------------------------
+  // SI ESTÁ EN HOME: SELECCIÓN DE EXPERIENCIA
+  // ---------------------------------------------
+
+  if (enHome) {
+
+    const columnas = 3;
+    const filas = 3;
+
+    const anchoCelda = width / columnas;
+    const altoCelda = height / filas;
+
+    const columna = floor(mouseX / anchoCelda);
+    const fila = floor(mouseY / altoCelda);
+
+    if (
+      columna >= 0 &&
+      columna <= 2 &&
+      fila >= 0 &&
+      fila <= 2
+    ) {
+
+      experienciaActual = fila * 3 + columna;
+      enHome = false;
+      iniciarExperiencia();
+
+    }
+
+    return;
+
+  }
+
+
+  // ---------------------------------------------
+  // SI ESTÁ EN EXPERIENCIA: BOTONES DE NAVEGACIÓN
+  // ---------------------------------------------
+
+  // Botón Volver (X)
+  if (
+    dist(
+      mouseX,
+      mouseY,
+      35,
+      35
+    ) < 35
+  ) {
+
+    enHome = true;
+
+    return;
+
+  }
+
+
+  // Botón Siguiente
+  if (
+    dist(
+      mouseX,
+      mouseY,
+      width - 65,
+      35
+    ) < 45
+  ) {
+
+    siguienteExperiencia();
+
+    return;
+
+  }
+
+}
+
+
+// =====================================================
+// SIGUIENTE
+// =====================================================
 
 function siguienteExperiencia() {
 
@@ -766,7 +1323,7 @@ function siguienteExperiencia() {
 
 
   if (
-    experienciaActual >= 9
+    experienciaActual > 8
   ) {
 
     experienciaActual = 0;
@@ -779,9 +1336,9 @@ function siguienteExperiencia() {
 }
 
 
-// ============================================================
-// EXPERIENCIA ANTERIOR
-// ============================================================
+// =====================================================
+// ANTERIOR
+// =====================================================
 
 function experienciaAnterior() {
 
@@ -802,191 +1359,318 @@ function experienciaAnterior() {
 }
 
 
-// ============================================================
-// TECLADO
-// ============================================================
+// =====================================================
+// INICIAR EXPERIENCIA
+// =====================================================
 
-function keyPressed() {
+function iniciarExperiencia() {
 
-  // FLECHA DERECHA
-
-  if (keyCode === RIGHT_ARROW) {
-
-    siguienteExperiencia();
-
-  }
+  tiempoInicio =
+    millis();
 
 
-  // FLECHA IZQUIERDA
-
-  if (keyCode === LEFT_ARROW) {
-
-    experienciaAnterior();
-
-  }
+  // MEMORIA
+  estelas =
+    Array(10)
+      .fill()
+      .map(() => []);
 
 
-  // TECLAS 1 — 9
+  // HERENCIA
+  herencias = [];
 
-  if (
-    key >= "1" &&
-    key <= "9"
-  ) {
+  contactosHerencia = {};
 
-    experienciaActual =
-      int(key) - 1;
 
-    iniciarExperiencia();
+  // CADUCIDAD
+  circulosCaducidad = [];
+  prevYemasCaducidad = {};
 
-  }
+
+  // IDENTIDAD
+  inicializarIdentidades();
+
+
+  // EMPATÍA
+  empatiaIluminacion =
+    [true, false];
+
+  ultimoContactoEmpatia =
+    millis();
+
+
+  // COLABORACIÓN
+  colaboracionBrillo = 0;
+
+
+  // INCERTIDUMBRE
+  contactosIncertidumbre = {};
+
+
+  coloresIncertidumbre =
+    Array(10)
+      .fill()
+      .map(() => null);
+
+
+  // ANSIEDAD
+  ansiedadFases =
+    Array(10)
+      .fill()
+      .map(() =>
+        random(TWO_PI)
+      );
+
+  ansiedadColisionIniciada = false;
+  tiempoInicioAnsiedadColision = 0;
+
+
+  // GUÍA INTERACTIVA RESET
+  guiaMostradaInteraccion = true;
+
+
+  // EXPECTATIVA
+  crearPatronExpectativa();
 
 }
 
 
-// ============================================================
-// INICIAR EXPERIENCIA
-// ============================================================
+// =====================================================
+// COLOR POR MANO
+// =====================================================
 
-function iniciarExperiencia() {
+function colorPorMano(
+  mano,
+  colorA,
+  colorB
+) {
 
-  tiempoInicio = millis();
+  if (
+    mano === 0
+  ) {
 
-
-  // ==========================================================
-  // MEMORIA
-  // ==========================================================
-
-  estelas = [];
-
-
-  for (let i = 0; i < 10; i++) {
-
-    estelas.push([]);
+    return colorA;
 
   }
 
 
-  // ==========================================================
-  // HERENCIA
-  // ==========================================================
+  return colorB;
 
-  herenciaEstados = {};
-
-  herenciasNuevas = [];
+}
 
 
-  // ==========================================================
-  // CADUCIDAD
-  // ==========================================================
+// =====================================================
+// DIBUJAR YEMAS
+// =====================================================
 
-  particulasCaducidad = [];
+function dibujarYemas(
+  colorA,
+  colorB
+) {
 
-  posicionesAnteriores = [];
+  for (
+    let p of yemas
+  ) {
 
-  ultimaCaida = millis();
-
-
-  // ==========================================================
-  // EMPATÍA
-  // ==========================================================
-
-  empatiaEstados = [];
-
-
-  // ==========================================================
-  // INCERTIDUMBRE
-  // ==========================================================
-
-  formasIncertidumbre = [];
+    const color =
+      colorPorMano(
+        p.mano,
+        colorA,
+        colorB
+      );
 
 
-  for (let i = 0; i < 10; i++) {
+    noStroke();
 
-    formasIncertidumbre.push(
-      "circle"
+
+    fill(
+      color.r,
+      color.g,
+      color.b
+    );
+
+
+    circle(
+      p.x,
+      p.y,
+      TAM_CIRCULO
     );
 
   }
 
-
-  ultimoCambioForma =
-    millis();
+}
 
 
-  // ==========================================================
-  // ANSIEDAD
-  // ==========================================================
+// =====================================================
+// CENTRO MANO
+// =====================================================
 
-  ansiedadTiempo = 0;
+function obtenerCentroMano(
+  numeroMano
+) {
 
-
-  // ==========================================================
-  // IDENTIDAD
-  // ==========================================================
-
-  identidadActivadas = [
-
-    false,
-    false,
-    false,
-    false,
-    false
-
-  ];
+  const puntos =
+    yemas.filter(
+      p =>
+        p.mano ===
+        numeroMano
+    );
 
 
-  identidadUltimaPosicion = null;
+  if (
+    puntos.length === 0
+  ) {
 
-  identidadMovimiento = 0;
+    return null;
 
-  identidadPulso = 0;
+  }
+
+
+  let sumaX = 0;
+  let sumaY = 0;
+
+
+  for (
+    let p of puntos
+  ) {
+
+    sumaX += p.x;
+    sumaY += p.y;
+
+  }
+
+
+  return {
+
+    x:
+      sumaX /
+      puntos.length,
+
+    y:
+      sumaY /
+      puntos.length
+
+  };
 
 }
 
 
-// ============================================================
+// =====================================================
+// CONTACTO ENTRE MANOS
+// =====================================================
+
+function manosEnContacto() {
+
+  const centroA =
+    obtenerCentroMano(0);
+
+
+  const centroB =
+    obtenerCentroMano(1);
+
+
+  if (
+    !centroA ||
+    !centroB
+  ) {
+
+    return false;
+
+  }
+
+
+  const distancia =
+    dist(
+      centroA.x,
+      centroA.y,
+      centroB.x,
+      centroB.y
+    );
+
+
+  return distancia < 180;
+
+}
+
+
+// =====================================================
 // 1 — MEMORIA
-// ============================================================
+// =====================================================
 
 function memoria() {
 
-  if (yemas.length === 0) {
+  if (guiaMostradaInteraccion) {
 
-    dibujarGuia();
+    dibujarGuiaManos();
 
     return;
 
   }
 
 
-  // Registrar posiciones
-
-  for (
-    let i = 0;
-    i < yemas.length && i < 10;
-    i++
-  ) {
-
-    estelas[i].push({
-
-      x: yemas[i].x,
-      y: yemas[i].y
-
-    });
+  const ahora = millis();
 
 
-    if (
-      estelas[i].length > 400
+  if (frameCount % 2 === 0) {
+
+    for (
+      let p of yemas
     ) {
 
-      estelas[i].shift();
+      const indice =
+        p.mano * 5 +
+        p.dedo;
+
+
+      estelas[indice].push({
+
+        x: p.x,
+        y: p.y,
+        tiempo: ahora
+
+      });
 
     }
 
   }
 
 
-  // Dibujar memoria
+  // ---------------------------------------------
+  // DESVANECIMIENTO Y VIDA DE 25 SEGUNDOS
+  // ---------------------------------------------
+
+  for (let i = 0; i < estelas.length; i++) {
+    estelas[i] = estelas[i].filter(punto => (ahora - punto.tiempo) < 25000);
+  }
+
+
+  // ---------------------------------------------
+  // LÍMITE TOTAL DE 200 CÍRCULOS EN PANTALLA
+  // ---------------------------------------------
+
+  let totalCirculos = estelas.reduce((acc, e) => acc + e.length, 0);
+
+  while (totalCirculos > 200) {
+
+    let indiceMasAntiguo = -1;
+    let tiempoMasAntiguo = Infinity;
+
+    for (let i = 0; i < estelas.length; i++) {
+      if (estelas[i].length > 0 && estelas[i][0].tiempo < tiempoMasAntiguo) {
+        tiempoMasAntiguo = estelas[i][0].tiempo;
+        indiceMasAntiguo = i;
+      }
+    }
+
+    if (indiceMasAntiguo !== -1) {
+      estelas[indiceMasAntiguo].shift();
+      totalCirculos--;
+    } else {
+      break;
+    }
+
+  }
+
 
   for (
     let i = 0;
@@ -994,57 +1678,35 @@ function memoria() {
     i++
   ) {
 
-    let color =
-
+    const color =
       i < 5
         ? AZUL
         : AMARILLO;
 
 
-    let trail =
-      estelas[i];
-
-
     for (
-      let j = 0;
-      j < trail.length;
-      j += 4
+      let punto of
+      estelas[i]
     ) {
 
-      let p = trail[j];
-
-
-      let alpha = map(
-
-        j,
-        0,
-        trail.length,
-
-        5,
-        60
-
-      );
-
+      const edad = ahora - punto.tiempo;
+      const alpha = map(edad, 0, 25000, 35, 0);
 
       noStroke();
 
 
       fill(
-
         color.r,
         color.g,
         color.b,
         alpha
-
       );
 
 
       circle(
-
-        p.x,
-        p.y,
-        12
-
+        punto.x,
+        punto.y,
+        TAM_CIRCULO * 0.55
       );
 
     }
@@ -1052,358 +1714,27 @@ function memoria() {
   }
 
 
-  dibujarYemasNormales();
+  dibujarYemas(
+    AZUL,
+    AMARILLO
+  );
 
 }
 
 
-// ============================================================
-// YEMAS NORMALES
-// ============================================================
-
-function dibujarYemasNormales() {
-
-  for (let p of yemas) {
-
-    let color =
-
-      p.mano === 0
-        ? AZUL
-        : AMARILLO;
-
-
-    noStroke();
-
-
-    fill(
-
-      color.r,
-      color.g,
-      color.b
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-      28
-
-    );
-
-  }
-
-}
-
-
-// ============================================================
+// =====================================================
 // 2 — HERENCIA
-// ============================================================
+// =====================================================
 
 function herencia() {
 
-  if (yemas.length < 10) {
+  if (guiaMostradaInteraccion) {
 
-    dibujarGuiaHerencia();
+    dibujarGuiaManos();
 
     return;
 
   }
-
-
-  // ==========================================================
-  // DETECTAR CHOQUES
-  // ==========================================================
-
-  for (let i = 0; i < yemas.length; i++) {
-
-    let p1 = yemas[i];
-
-
-    for (
-      let j = i + 1;
-      j < yemas.length;
-      j++
-    ) {
-
-      let p2 = yemas[j];
-
-
-      // Solo puede haber herencia
-      // entre las dos manos
-
-      if (
-        p1.mano === p2.mano
-      ) {
-
-        continue;
-
-      }
-
-
-      let distancia = dist(
-
-        p1.x,
-        p1.y,
-
-        p2.x,
-        p2.y
-
-      );
-
-
-      let indiceEstado =
-        i + "-" + j;
-
-
-      // ======================================================
-      // CHOQUE
-      // ======================================================
-
-      if (
-        distancia < 65
-      ) {
-
-
-        // Si no estaban chocando
-        // antes, se crea un nuevo verde
-
-        if (
-          !herenciaEstados[indiceEstado]
-        ) {
-
-          herenciaEstados[indiceEstado] = true;
-
-
-          // ==================================================
-          // NUEVO CÍRCULO VERDE
-          // ==================================================
-
-          herenciasNuevas.push({
-
-            x:
-              (p1.x + p2.x) / 2,
-
-            y:
-              (p1.y + p2.y) / 2,
-
-            tamaño: 0,
-
-            tamañoFinal: 40,
-
-            creciendo: true
-
-          });
-
-        }
-
-      }
-
-
-      // ======================================================
-      // SE SEPARARON
-      // ======================================================
-
-      else {
-
-        herenciaEstados[indiceEstado] =
-          false;
-
-      }
-
-    }
-
-  }
-
-
-  // ==========================================================
-  // DIBUJAR LOS VERDES HEREDADOS
-  // ==========================================================
-
-  for (
-    let i =
-      0;
-    i <
-      herenciasNuevas.length;
-    i++
-  ) {
-
-    let h =
-      herenciasNuevas[i];
-
-
-    // Crecimiento suave
-
-    if (
-      h.creciendo
-    ) {
-
-      h.tamaño =
-        lerp(
-
-          h.tamaño,
-
-          h.tamañoFinal,
-
-          0.12
-
-        );
-
-
-      if (
-        abs(
-
-          h.tamaño -
-          h.tamañoFinal
-
-        ) < 0.5
-      ) {
-
-        h.tamaño =
-          h.tamañoFinal;
-
-        h.creciendo =
-          false;
-
-      }
-
-    }
-
-
-    // ========================================================
-    // HALO
-    // ========================================================
-
-    noStroke();
-
-
-    fill(
-
-      VERDE.r,
-      VERDE.g,
-      VERDE.b,
-      20
-
-    );
-
-
-    circle(
-
-      h.x,
-      h.y,
-
-      h.tamaño * 2
-
-    );
-
-
-    // ========================================================
-    // CÍRCULO VERDE
-    // ========================================================
-
-    fill(
-
-      VERDE.r,
-      VERDE.g,
-      VERDE.b
-
-    );
-
-
-    circle(
-
-      h.x,
-      h.y,
-
-      h.tamaño
-
-    );
-
-
-    // ========================================================
-    // BRILLO
-    // ========================================================
-
-    fill(
-
-      255,
-      255,
-      255,
-      150
-
-    );
-
-
-    circle(
-
-      h.x -
-        h.tamaño * 0.15,
-
-      h.y -
-        h.tamaño * 0.15,
-
-      h.tamaño * 0.18
-
-    );
-
-  }
-
-
-  // ==========================================================
-  // DIBUJAR LAS YEMAS ORIGINALES
-  // ==========================================================
-
-  for (let p of yemas) {
-
-    let color =
-
-      p.mano === 0
-        ? AZUL
-        : AMARILLO;
-
-
-    noStroke();
-
-
-    fill(
-
-      color.r,
-      color.g,
-      color.b
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-      40
-
-    );
-
-  }
-
-}
-
-
-// ============================================================
-// 3 — CADUCIDAD
-// ============================================================
-
-function caducidad() {
-
-  if (yemas.length === 0) {
-
-    dibujarGuia();
-
-    return;
-
-  }
-
-
-  let movimientoTotal = 0;
 
 
   for (
@@ -1412,97 +1743,224 @@ function caducidad() {
     i++
   ) {
 
-    let p = yemas[i];
+    for (
+      let j = i + 1;
+      j < yemas.length;
+      j++
+    ) {
+
+      const a =
+        yemas[i];
+
+      const b =
+        yemas[j];
 
 
-    let anterior =
-      posicionesAnteriores[i];
+      if (
+        a.mano === b.mano
+      ) {
+
+        continue;
+
+      }
 
 
-    if (anterior) {
+      const distancia =
+        dist(
+          a.x,
+          a.y,
+          b.x,
+          b.y
+        );
 
-      movimientoTotal += dist(
 
-        p.x,
-        p.y,
+      const clave =
+        `${i}-${j}`;
 
-        anterior.x,
-        anterior.y
 
-      );
+      if (
+        distancia <
+        TAM_CIRCULO
+      ) {
+
+        if (
+          !contactosHerencia[clave]
+        ) {
+
+          contactosHerencia[clave] =
+            true;
+
+          const cx = (a.x + b.x) / 2;
+          const cy = (a.y + b.y) / 2;
+
+          const radioMinimoExclusion = TAM_CIRCULO * 0.3;
+          let demasiadoCerca = herencias.some(h => dist(cx, cy, h.x, h.y) < radioMinimoExclusion);
+
+          if (!demasiadoCerca) {
+
+            herencias.push({
+
+              x: cx,
+
+              y: cy,
+
+              tam: 0,
+
+              tamFinal:
+                TAM_CIRCULO * 0.8
+
+            });
+
+          }
+
+        }
+
+      } else {
+
+        contactosHerencia[clave] =
+          false;
+
+      }
 
     }
-
-
-    posicionesAnteriores[i] = {
-
-      x: p.x,
-      y: p.y
-
-    };
 
   }
 
 
-  if (
-
-    movimientoTotal > 35 &&
-
-    millis() -
-    ultimaCaida > 90
-
+  for (
+    let h of herencias
   ) {
 
-    ultimaCaida = millis();
-
-
-    let indice =
-      floor(
-        random(yemas.length)
+    h.tam =
+      lerp(
+        h.tam,
+        h.tamFinal,
+        0.1
       );
 
 
-    let p =
-      yemas[indice];
+    noStroke();
 
 
-    let color =
+    fill(
+      VERDE.r,
+      VERDE.g,
+      VERDE.b,
+      40
+    );
 
-      p.mano === 0
+
+    circle(
+      h.x,
+      h.y,
+      h.tam * 1.8
+    );
+
+
+    fill(
+      VERDE.r,
+      VERDE.g,
+      VERDE.b
+    );
+
+
+    circle(
+      h.x,
+      h.y,
+      h.tam
+    );
+
+  }
+
+
+  dibujarYemas(
+    AZUL,
+    AMARILLO
+  );
+
+}
+
+
+// =====================================================
+// 3 — CADUCIDAD
+// =====================================================
+
+function caducidad() {
+
+  if (guiaMostradaInteraccion) {
+
+    dibujarGuiaManos();
+
+    return;
+
+  }
+
+
+  let manoEnMovimiento = false;
+
+  for (let p of yemas) {
+    const clave = `${p.mano}-${p.dedo}`;
+    const prev = prevYemasCaducidad[clave];
+
+    if (prev) {
+      const d = dist(p.x, p.y, prev.x, prev.y);
+      if (d > 2.2) {
+        manoEnMovimiento = true;
+      }
+    }
+
+    prevYemasCaducidad[clave] = { x: p.x, y: p.y };
+  }
+
+
+  if (
+    yemas.length > 0 &&
+    manoEnMovimiento &&
+    frameCount % 6 === 0
+  ) {
+
+    const origen =
+      random(yemas);
+
+
+    const color =
+      origen.mano === 0
         ? AZUL
         : AMARILLO;
 
 
-    particulasCaducidad.push({
+    circulosCaducidad.push({
 
-      x: p.x,
-      y: p.y,
+      x: origen.x,
 
-      vx: random(-0.8, 0.8),
+      y: origen.y,
 
-      vy: random(1, 3),
+      vx: random(
+        -1.2,
+        1.2
+      ),
 
-      gravedad: 0.08,
+      vy: random(
+        0.5,
+        1.8
+      ),
 
-      tam: random(8, 18),
+      gravedad: random(
+        0.05,
+        0.12
+      ),
 
-      rotacion:
-        random(TWO_PI),
+      tam: random(
+        TAM_CIRCULO * 0.22,
+        TAM_CIRCULO * 0.45
+      ) * 1.3,
 
-      velocidadRotacion:
-        random(-0.04, 0.04),
+      vida: random(
+        100,
+        220
+      ),
 
-      vida: 255,
-
-      color: color,
-
-      forma: random([
-
-        "circle",
-        "triangle",
-        "square"
-
-      ])
+      color: color
 
     });
 
@@ -1510,91 +1968,51 @@ function caducidad() {
 
 
   for (
-
     let i =
-      particulasCaducidad.length - 1;
-
+      circulosCaducidad.length - 1;
     i >= 0;
-
     i--
-
   ) {
 
-    let p =
-      particulasCaducidad[i];
+    const c =
+      circulosCaducidad[i];
 
 
-    p.vy +=
-      p.gravedad;
+    c.x += c.vx;
+    c.y += c.vy;
+
+    c.vy +=
+      c.gravedad;
 
 
-    p.x +=
-      p.vx;
-
-
-    p.y +=
-      p.vy;
-
-
-    p.rotacion +=
-      p.velocidadRotacion;
-
-
-    p.vida -= 1.3;
-
-
-    push();
-
-
-    translate(
-      p.x,
-      p.y
-    );
-
-
-    rotate(
-      p.rotacion
-    );
+    c.vida -=
+      0.8;
 
 
     noStroke();
 
 
     fill(
-
-      p.color.r,
-      p.color.g,
-      p.color.b,
-      p.vida
-
+      c.color.r,
+      c.color.g,
+      c.color.b,
+      c.vida
     );
 
 
-    dibujarForma(
-
-      p.forma,
-
-      0,
-      0,
-
-      p.tam
-
+    circle(
+      c.x,
+      c.y,
+      c.tam
     );
-
-
-    pop();
 
 
     if (
-
-      p.vida <= 0 ||
-
-      p.y >
-      height + 50
-
+      c.y > height ||
+      c.vida <= 0
     ) {
 
-      particulasCaducidad.splice(
+      circulosCaducidad.splice(
         i,
         1
       );
@@ -1604,297 +2022,106 @@ function caducidad() {
   }
 
 
-  dibujarYemasNormales();
+  dibujarYemas(
+    AZUL,
+    AMARILLO
+  );
 
 }
 
 
-// ============================================================
+// =====================================================
+// INICIALIZAR IDENTIDADES
+// =====================================================
+
+function inicializarIdentidades() {
+
+  identidades = [];
+  identidadEstado = [];
+  contactosIdentidad = {};
+
+
+  // Mano 0 (Tonos de Azul)
+  const tonosAzul = [
+    { r: 30, g: 120, b: 255 },  // Meñique
+    { r: 60, g: 160, b: 255 },  // Índice
+    { r: 80, g: 190, b: 255 },  // Medio
+    { r: 20, g: 140, b: 230 },  // Anular
+    { r: 100, g: 200, b: 255 }  // Pulgar
+  ];
+
+
+  // Mano 1 (Tonos de Naranja)
+  const tonosNaranja = [
+    { r: 255, g: 90, b: 30 },   // Meñique
+    { r: 255, g: 135, b: 45 },  // Índice
+    { r: 255, g: 165, b: 50 },  // Medio
+    { r: 240, g: 110, b: 20 },  // Anular
+    { r: 255, g: 185, b: 70 }   // Pulgar
+  ];
+
+
+  for (let idx = 0; idx < 10; idx++) {
+
+    const mano = floor(idx / 5);
+    const dedo = idx % 5;
+
+    const colBase = (mano === 0) ? tonosAzul[dedo] : tonosNaranja[dedo];
+
+
+    identidades.push({
+
+      color: colBase,
+
+      tamano: TAM_CIRCULO * random(1.0, 1.5),
+
+      opacidad: random(178, 255)
+
+    });
+
+
+    identidadEstado.push({
+
+      animando: false,
+
+      tiempoInicioAnim: 0,
+
+      brilloExtra: false,
+
+      tiempoInicioBrillo: 0
+
+    });
+
+  }
+
+}
+
+
+// =====================================================
 // 4 — IDENTIDAD
-// ============================================================
+// =====================================================
 
 function identidad() {
 
-  let manoYemas =
-    yemas.filter(
-      p => p.mano === 0
-    );
+  if (guiaMostradaInteraccion) {
 
-
-  if (manoYemas.length === 0) {
-
-    dibujarGuiaUnaMano();
+    dibujarGuiaManos();
 
     return;
 
   }
 
 
-  let centro =
-    centroMano(0);
+  if (identidades.length === 0) {
 
-
-  if (centro) {
-
-    if (identidadUltimaPosicion) {
-
-      identidadMovimiento += dist(
-
-        centro.x,
-        centro.y,
-
-        identidadUltimaPosicion.x,
-        identidadUltimaPosicion.y
-
-      );
-
-    }
-
-
-    identidadUltimaPosicion = {
-
-      x: centro.x,
-      y: centro.y
-
-    };
+    inicializarIdentidades();
 
   }
 
 
-  if (
-    identidadMovimiento > 45
-  ) {
-
-    for (let i = 0; i < 5; i++) {
-
-      if (
-        !identidadActivadas[i]
-      ) {
-
-        identidadActivadas[i] =
-          true;
-
-        identidadMovimiento = 0;
-
-        break;
-
-      }
-
-    }
-
-  }
-
-
-  let todasActivas =
-
-    identidadActivadas[0] &&
-    identidadActivadas[1] &&
-    identidadActivadas[2] &&
-    identidadActivadas[3] &&
-    identidadActivadas[4];
-
-
-  if (
-    todasActivas
-  ) {
-
-    identidadPulso +=
-      0.045;
-
-  }
-
-
-  for (
-    let i = 0;
-    i < manoYemas.length;
-    i++
-  ) {
-
-    let p =
-      manoYemas[i];
-
-
-    let activa =
-      identidadActivadas[p.dedo];
-
-
-    if (!activa) {
-
-      noStroke();
-
-
-      fill(
-
-        AZUL.r,
-        AZUL.g,
-        AZUL.b,
-        35
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        28
-
-      );
-
-
-      continue;
-
-    }
-
-
-    let escala = 1;
-
-
-    if (
-      todasActivas
-    ) {
-
-      escala = map(
-
-        sin(identidadPulso),
-
-        -1,
-        1,
-
-        0.75,
-        1.35
-
-      );
-
-    }
-
-
-    let tam =
-      32 * escala;
-
-
-    noStroke();
-
-
-    fill(
-
-      NARANJA.r,
-      NARANJA.g,
-      NARANJA.b,
-      25
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-
-      tam * 2.4
-
-    );
-
-
-    fill(
-
-      NARANJA.r,
-      NARANJA.g,
-      NARANJA.b,
-      55
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-
-      tam * 1.5
-
-    );
-
-
-    fill(
-
-      NARANJA.r,
-      NARANJA.g,
-      NARANJA.b,
-      255
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-      tam
-
-    );
-
-
-    fill(
-
-      255,
-      255,
-      255,
-      190
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-
-      tam * 0.22
-
-    );
-
-  }
-
-}
-
-
-// ============================================================
-// 5 — EMPATÍA
-// ============================================================
-
-function empatia() {
-
-  if (yemas.length < 10) {
-
-    dibujarGuia();
-
-    return;
-
-  }
-
-
-  if (
-    empatiaEstados.length !== yemas.length
-  ) {
-
-    empatiaEstados = [];
-
-
-    for (
-      let i = 0;
-      i < yemas.length;
-      i++
-    ) {
-
-      empatiaEstados.push(
-        i % 2 === 0
-      );
-
-    }
-
-  }
-
+  // ---------------------------------------------
+  // DETECCIÓN DE COLISIÓN ENTRE DEDOS
+  // ---------------------------------------------
 
   for (
     let i = 0;
@@ -1902,55 +2129,52 @@ function empatia() {
     i++
   ) {
 
-    if (
-      !empatiaEstados[i]
-    ) {
-
-      continue;
-
-    }
-
-
     for (
-      let j = 0;
+      let j = i + 1;
       j < yemas.length;
       j++
     ) {
 
-      if (i === j) {
+      const a = yemas[i];
+      const b = yemas[j];
 
+      // Ignorar colisiones entre dedos de la misma mano
+      if (a.mano === b.mano) {
         continue;
-
       }
 
+      const idxA = a.mano * 5 + a.dedo;
+      const idxB = b.mano * 5 + b.dedo;
 
-      if (
-        empatiaEstados[j]
-      ) {
+      const distancia = dist(a.x, a.y, b.x, b.y);
+      const clave = `${idxA}-${idxB}`;
 
-        continue;
+      const tamA = identidades[idxA] ? identidades[idxA].tamano : TAM_CIRCULO;
+      const tamB = identidades[idxB] ? identidades[idxB].tamano : TAM_CIRCULO;
 
-      }
-
-
-      let distancia =
-        dist(
-
-          yemas[i].x,
-          yemas[i].y,
-
-          yemas[j].x,
-          yemas[j].y
-
-        );
+      // Hitbox reducida al 70% del tamaño (x * 0.7)
+      const umbralColision = (tamA + tamB) * 0.5 * 0.7;
 
 
-      if (
-        distancia < 55
-      ) {
+      if (distancia < umbralColision) {
 
-        empatiaEstados[j] =
-          true;
+        if (!contactosIdentidad[clave]) {
+
+          contactosIdentidad[clave] = true;
+
+          const ahora = millis();
+
+          identidadEstado[idxA].animando = true;
+          identidadEstado[idxA].tiempoInicioAnim = ahora;
+
+          identidadEstado[idxB].animando = true;
+          identidadEstado[idxB].tiempoInicioAnim = ahora;
+
+        }
+
+      } else {
+
+        contactosIdentidad[clave] = false;
 
       }
 
@@ -1959,427 +2183,228 @@ function empatia() {
   }
 
 
-  for (
-    let i = 0;
-    i < yemas.length;
-    i++
-  ) {
-
-    let p =
-      yemas[i];
-
-
-    let color =
-
-      p.mano === 0
-        ? AZUL
-        : NARANJA;
-
-
-    let iluminada =
-      empatiaEstados[i];
-
-
-    if (!iluminada) {
-
-      noStroke();
-
-
-      fill(
-
-        color.r,
-        color.g,
-        color.b,
-        45
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        32
-
-      );
-
-    }
-
-
-    else {
-
-      noStroke();
-
-
-      fill(
-
-        color.r,
-        color.g,
-        color.b,
-        20
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        85
-
-      );
-
-
-      fill(
-
-        color.r,
-        color.g,
-        color.b,
-        45
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        58
-
-      );
-
-
-      fill(
-
-        color.r,
-        color.g,
-        color.b,
-        255
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        32
-
-      );
-
-
-      fill(
-
-        255,
-        255,
-        255,
-        180
-
-      );
-
-
-      circle(
-
-        p.x,
-        p.y,
-        7
-
-      );
-
-    }
-
-  }
-
-}
-
-
-// ============================================================
-// 6 — COLABORACIÓN
-// ============================================================
-
-function colaboracion() {
-
-  if (yemas.length < 10) {
-
-    dibujarGuia();
-
-    return;
-
-  }
-
-
-  let a =
-    centroMano(0);
-
-
-  let b =
-    centroMano(1);
-
-
-  if (!a || !b) {
-
-    return;
-
-  }
-
-
-  let distancia = dist(
-
-    a.x,
-    a.y,
-
-    b.x,
-    b.y
-
-  );
-
-
-  let fuerza = map(
-
-    distancia,
-
-    320,
-    80,
-
-    0,
-    1
-
-  );
-
-
-  fuerza =
-    constrain(
-      fuerza,
-      0,
-      1
-    );
-
+  // ---------------------------------------------
+  // DIBUJO DE CADA IDENTIDAD
+  // ---------------------------------------------
 
   for (let p of yemas) {
 
-    let color =
+    const idx = p.mano * 5 + p.dedo;
+    const est = identidadEstado[idx] || { animando: false, brilloExtra: false };
+    const idOriginal = identidades[idx] || { color: AZUL, tamano: TAM_CIRCULO, opacidad: 255 };
 
-      p.mano === 0
-        ? FUCSIA
-        : NARANJA;
-
-
-    noStroke();
+    let idVisual = idOriginal;
 
 
-    fill(
+    // ---------------------------------------------
+    // TRANSICIÓN DE 1 SEGUNDO AL COLISIONAR
+    // PASA POR TODAS LAS OTRAS IDENTIDADES
+    // ---------------------------------------------
 
-      color.r,
-      color.g,
-      color.b,
+    if (est.animando) {
 
-      fuerza * 40
+      const transcurrido = (millis() - est.tiempoInicioAnim) / 1000;
 
-    );
+      if (transcurrido < 1.0) {
 
+        const paso = floor(transcurrido * 15) % identidades.length;
+        idVisual = identidades[paso];
 
-    circle(
+      } else {
 
-      p.x,
-      p.y,
-      70
-
-    );
-
-
-    fill(
-
-      color.r,
-      color.g,
-      color.b,
-
-      35 +
-      fuerza * 220
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-      30
-
-    );
-
-  }
-
-
-  if (
-    fuerza > 0.15
-  ) {
-
-    stroke(
-
-      255,
-      255,
-      255,
-
-      fuerza * 100
-
-    );
-
-
-    strokeWeight(
-
-      1 +
-      fuerza * 2
-
-    );
-
-
-    for (let i = 0; i < 5; i++) {
-
-      let izquierda =
-        yemas.find(
-
-          p =>
-            p.mano === 0 &&
-            p.dedo === i
-
-        );
-
-
-      let derecha =
-        yemas.find(
-
-          p =>
-            p.mano === 1 &&
-            p.dedo === i
-
-        );
-
-
-      if (
-        izquierda &&
-        derecha
-      ) {
-
-        line(
-
-          izquierda.x,
-          izquierda.y,
-
-          derecha.x,
-          derecha.y
-
-        );
+        est.animando = false;
+        est.brilloExtra = true;
+        est.tiempoInicioBrillo = millis();
 
       }
 
     }
+
+
+    const col = idVisual.color;
+    const tam = idVisual.tamano;
+    const opa = idVisual.opacidad;
+
+
+    // ---------------------------------------------
+    // BRILLO SUTIL POR DETRÁS DEL CÍRCULO (3 SEGUNDOS)
+    // ---------------------------------------------
+
+    if (est.brilloExtra) {
+
+      const tiempoBrillo = (millis() - (est.tiempoInicioBrillo || 0)) / 1000;
+
+      if (tiempoBrillo < 3.0) {
+
+        // Desvanecimiento suave en el último segundo
+        const factorFade = constrain(1.0 - (tiempoBrillo - 2.0), 0.0, 1.0);
+
+        noStroke();
+
+        const pulsoGlow = sin(frameCount * 0.08) * 3;
+
+        // Halo exterior suave
+        fill(
+          col.r,
+          col.g,
+          col.b,
+          25 * factorFade
+        );
+
+        circle(
+          p.x,
+          p.y,
+          tam * 1.5 + pulsoGlow
+        );
+
+
+        // Halo intermedio sutil
+        fill(
+          col.r,
+          col.g,
+          col.b,
+          45 * factorFade
+        );
+
+        circle(
+          p.x,
+          p.y,
+          tam * 1.25 + pulsoGlow * 0.5
+        );
+
+      } else {
+
+        est.brilloExtra = false;
+
+      }
+
+    }
+
+
+    // ---------------------------------------------
+    // CÍRCULO BASE DE LA IDENTIDAD
+    // ---------------------------------------------
+
+    noStroke();
+
+    fill(
+      col.r,
+      col.g,
+      col.b,
+      opa
+    );
+
+    circle(
+      p.x,
+      p.y,
+      tam
+    );
 
   }
 
 }
 
 
-// ============================================================
-// 7 — INCERTIDUMBRE
-// ============================================================
+// =====================================================
+// 5 — EMPATÍA
+// =====================================================
 
-function incertidumbre() {
+function empatia() {
 
-  if (yemas.length === 0) {
+  if (guiaMostradaInteraccion) {
 
-    dibujarGuia();
+    dibujarGuiaManos();
 
     return;
 
   }
 
 
-  if (
-
-    millis() -
-    ultimoCambioForma >
-    300
-
-  ) {
-
-    let cantidad =
-      floor(
-        random(1, 4)
-      );
+  const contacto =
+    manosEnContacto();
 
 
-    for (
+  if (contacto) {
 
-      let n = 0;
-      n < cantidad;
-      n++
+    empatiaIluminacion[0] =
+      true;
 
-    ) {
-
-      let i =
-        floor(
-          random(yemas.length)
-        );
+    empatiaIluminacion[1] =
+      true;
 
 
-      formasIncertidumbre[i] =
-        random([
-
-          "circle",
-          "triangle",
-          "square"
-
-        ]);
-
-    }
-
-
-    ultimoCambioForma =
+    ultimoContactoEmpatia =
       millis();
 
   }
 
 
-  for (
-
-    let i = 0;
-    i < yemas.length;
-    i++
-
+  if (
+    !contacto &&
+    millis() -
+    ultimoContactoEmpatia >
+    TIEMPO_APAGADO_EMPATIА
   ) {
 
-    let p =
-      yemas[i];
+    empatiaIluminacion[1] =
+      false;
+
+  }
 
 
-    let color =
+  for (
+    let p of yemas
+  ) {
 
+    const color =
       p.mano === 0
-        ? FUCSIA
+        ? AZUL
         : NARANJA;
+
+
+    const iluminada =
+      empatiaIluminacion[p.mano];
+
+
+    if (iluminada) {
+
+      noStroke();
+
+
+      fill(
+        color.r,
+        color.g,
+        color.b,
+        35
+      );
+
+
+      circle(
+        p.x,
+        p.y,
+        TAM_CIRCULO * 2.2
+      );
+
+    }
 
 
     noStroke();
 
 
     fill(
-
       color.r,
       color.g,
-      color.b
-
+      color.b,
+      iluminada
+        ? 255
+        : 80
     );
 
 
-    dibujarForma(
-
-      formasIncertidumbre[i],
-
+    circle(
       p.x,
       p.y,
-
-      30
-
+      TAM_CIRCULO
     );
 
   }
@@ -2387,106 +2412,445 @@ function incertidumbre() {
 }
 
 
-// ============================================================
+// =====================================================
+// 6 — COLABORACIÓN
+// =====================================================
+
+function colaboracion() {
+
+  if (guiaMostradaInteraccion) {
+
+    dibujarGuiaManos();
+
+    return;
+
+  }
+
+
+  // ---------------------------------------------
+  // DETECTAR SI LAS DOS MANOS SE UNEN
+  // ---------------------------------------------
+
+  const contacto =
+    manosEnContacto();
+
+
+  // ---------------------------------------------
+  // BRILLO
+  // ---------------------------------------------
+
+  if (contacto) {
+
+    colaboracionBrillo =
+      lerp(
+        colaboracionBrillo,
+        1,
+        0.12
+      );
+
+  } else {
+
+    colaboracionBrillo =
+      lerp(
+        colaboracionBrillo,
+        0,
+        0.08
+      );
+
+  }
+
+
+  // ---------------------------------------------
+  // DIBUJAR CADA YEMA
+  // ---------------------------------------------
+
+  for (
+    let p of yemas
+  ) {
+
+    const color =
+      p.mano === 0
+        ? AZUL
+        : NARANJA;
+
+
+    // -------------------------------------------
+    // AURA DE COLABORACIÓN
+    // APARECE SOLO AL UNIRSE
+    // -------------------------------------------
+
+    if (
+      colaboracionBrillo > 0.01
+    ) {
+
+      noStroke();
+
+
+      fill(
+        color.r,
+        color.g,
+        color.b,
+        45 * colaboracionBrillo
+      );
+
+
+      circle(
+        p.x,
+        p.y,
+        TAM_CIRCULO *
+        (1.5 + 0.9 * colaboracionBrillo)
+      );
+
+    }
+
+
+    // -------------------------------------------
+    // CÍRCULO PRINCIPAL
+    // OPACO → BRILLANTE
+    // -------------------------------------------
+
+    noStroke();
+
+
+    const alpha =
+      lerp(
+        45,
+        255,
+        colaboracionBrillo
+      );
+
+
+    fill(
+      color.r,
+      color.g,
+      color.b,
+      alpha
+    );
+
+
+    circle(
+      p.x,
+      p.y,
+      TAM_CIRCULO
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// 7 — INCERTIDUMBRE
+// =====================================================
+
+function incertidumbre() {
+
+  if (guiaMostradaInteraccion) {
+
+    dibujarGuiaManos();
+
+    return;
+
+  }
+
+
+  const coloresRandom = [
+
+    NARANJA,
+    FUCSIA,
+    AZUL,
+    AMARILLO,
+    VERDE
+
+  ];
+
+
+  for (
+    let i = 0;
+    i < yemas.length;
+    i++
+  ) {
+
+    for (
+      let j = i + 1;
+      j < yemas.length;
+      j++
+    ) {
+
+      const a =
+        yemas[i];
+
+      const b =
+        yemas[j];
+
+
+      if (
+        a.mano === b.mano
+      ) {
+
+        continue;
+
+      }
+
+
+      const distancia =
+        dist(
+          a.x,
+          a.y,
+          b.x,
+          b.y
+        );
+
+
+      const clave =
+        `${i}-${j}`;
+
+
+      if (
+        distancia <
+        TAM_CIRCULO * 1.15
+      ) {
+
+        if (
+          !contactosIncertidumbre[clave]
+        ) {
+
+          contactosIncertidumbre[clave] =
+            true;
+
+
+          const indiceA =
+            a.mano * 5 +
+            a.dedo;
+
+
+          const indiceB =
+            b.mano * 5 +
+            b.dedo;
+
+
+          coloresIncertidumbre[indiceA] =
+            random(coloresRandom);
+
+
+          coloresIncertidumbre[indiceB] =
+            random(coloresRandom);
+
+        }
+
+      } else {
+
+        contactosIncertidumbre[clave] =
+          false;
+
+      }
+
+    }
+
+  }
+
+
+  for (
+    let p of yemas
+  ) {
+
+    const indice =
+      p.mano * 5 +
+      p.dedo;
+
+
+    let color =
+      coloresIncertidumbre[indice];
+
+
+    if (!color) {
+
+      color =
+        p.mano === 0
+          ? NARANJA
+          : FUCSIA;
+
+    }
+
+
+    noStroke();
+
+
+    fill(
+      color.r,
+      color.g,
+      color.b
+    );
+
+
+    circle(
+      p.x,
+      p.y,
+      TAM_CIRCULO
+    );
+
+  }
+
+}
+
+
+// =====================================================
 // 8 — ANSIEDAD
-// ============================================================
+// =====================================================
 
 function ansiedad() {
 
-  if (yemas.length === 0) {
+  if (guiaMostradaInteraccion) {
 
-    dibujarGuia();
+    dibujarGuiaManos();
 
     return;
 
   }
 
 
-  ansiedadTiempo +=
-    0.08;
+  // ---------------------------------------------
+  // DETECCIÓN DE COLISIÓN PARA INICIAR EL TEMBLOR
+  // ---------------------------------------------
+
+  if (!ansiedadColisionIniciada) {
+
+    if (manosEnContacto()) {
+
+      ansiedadColisionIniciada = true;
+      tiempoInicioAnsiedadColision = millis();
+
+    } else {
+
+      for (let i = 0; i < yemas.length; i++) {
+        for (let j = i + 1; j < yemas.length; j++) {
+          if (dist(yemas[i].x, yemas[i].y, yemas[j].x, yemas[j].y) < TAM_CIRCULO * 1.2) {
+            ansiedadColisionIniciada = true;
+            tiempoInicioAnsiedadColision = millis();
+            break;
+          }
+        }
+        if (ansiedadColisionIniciada) break;
+      }
+
+    }
+
+  }
+
+
+  // ---------------------------------------------
+  // INTENSIDAD Y TENSIÓN EXPLÍCITA SEGÚN EL TIEMPO
+  // ---------------------------------------------
+
+  let intensidad = 0;
+  let velFase = 0.2;
+
+  if (ansiedadColisionIniciada) {
+
+    const segColision = (millis() - tiempoInicioAnsiedadColision) / 1000;
+
+    // Empeoramiento explícito con el tiempo
+    const factorTension = 1.0 + segColision * 1.1;
+
+    intensidad = 8 * factorTension;
+    velFase = 0.2 * (1.0 + segColision * 0.15);
+
+  }
 
 
   for (
-
-    let i = 0;
-    i < yemas.length;
-    i++
-
+    let p of yemas
   ) {
 
-    let p =
-      yemas[i];
+    const indice =
+      p.mano * 5 +
+      p.dedo;
 
 
-    let color =
+    if (
+      ansiedadFases[indice] ===
+      undefined
+    ) {
 
+      ansiedadFases[indice] =
+        random(TWO_PI);
+
+    }
+
+
+    ansiedadFases[indice] +=
+      random(
+        0.15,
+        0.4
+      ) * velFase;
+
+
+    let movimientoX = 0;
+    let movimientoY = 0;
+
+    if (ansiedadColisionIniciada) {
+
+      movimientoX =
+        random(
+          -intensidad,
+          intensidad
+        ) *
+        sin(
+          ansiedadFases[indice]
+        );
+
+      movimientoY =
+        random(
+          -intensidad,
+          intensidad
+        ) *
+        cos(
+          ansiedadFases[indice] *
+          1.4
+        );
+
+    }
+
+
+    const color =
       p.mano === 0
-        ? FUCSIA
-        : NARANJA;
-
-
-    let pulso =
-      sin(
-
-        ansiedadTiempo * 3 +
-        i * 0.7
-
-      );
-
-
-    let tam = map(
-
-      pulso,
-
-      -1,
-      1,
-
-      12,
-      75
-
-    );
+        ? NARANJA
+        : FUCSIA;
 
 
     noStroke();
 
 
     fill(
-
       color.r,
       color.g,
       color.b,
-
-      25
-
+      30
     );
 
 
     circle(
-
-      p.x,
-      p.y,
-
-      tam * 1.8
-
+      p.x +
+      movimientoX,
+      p.y +
+      movimientoY,
+      TAM_CIRCULO * 1.8
     );
 
 
     fill(
-
       color.r,
       color.g,
       color.b
-
     );
 
 
     circle(
-
-      p.x,
-      p.y,
-
-      tam
-
+      p.x +
+      movimientoX,
+      p.y +
+      movimientoY,
+      TAM_CIRCULO
     );
 
   }
@@ -2494,185 +2858,203 @@ function ansiedad() {
 }
 
 
-// ============================================================
+// =====================================================
 // 9 — EXPECTATIVA
-// ============================================================
+// =====================================================
+
+const HORIZONTE_ANTICIPACION = 14;
+const SUAVIZADO_PROYECCION = 0.12;
+
+
+function crearPatronExpectativa() {
+
+  patronExpectativa =
+    Array(10)
+      .fill()
+      .map(() => ({
+
+        prevX: null,
+        prevY: null,
+
+        projX: null,
+        projY: null
+
+      }));
+
+}
+
 
 function expectativa() {
 
-  if (yemas.length === 0) {
+  if (guiaMostradaInteraccion) {
 
-    dibujarGuia();
+    dibujarGuiaManos();
 
     return;
 
   }
 
 
-  let respiracion =
-
-    (
-      sin(
-        millis() * 0.003
-      ) + 1
-    ) / 2;
-
-
-  let pulso =
-    easeInOut(
-      respiracion
-    );
-
-
   for (
-
-    let i = 0;
-    i < yemas.length;
-    i++
-
+    let p of yemas
   ) {
 
-    let p =
-      yemas[i];
+    const indice =
+      p.mano * 5 +
+      p.dedo;
 
 
-    let color =
-
-      p.mano === 0
-        ? FUCSIA
-        : NARANJA;
+    const estado =
+      patronExpectativa[indice];
 
 
-    let diferencia =
+    // ---------------------------------------------
+    // PRIMER FRAME DE ESTE DEDO
+    // ---------------------------------------------
 
-      sin(
+    if (
+      estado.prevX === null
+    ) {
 
-        millis() * 0.003 +
-        i * 0.45
+      estado.prevX = p.x;
+      estado.prevY = p.y;
 
-      ) * 0.15;
+      estado.projX = p.x;
+      estado.projY = p.y;
+
+    }
 
 
-    let escala =
-      constrain(
+    // ---------------------------------------------
+    // VELOCIDAD ACTUAL DEL DEDO
+    // ---------------------------------------------
 
-        pulso +
-        diferencia,
+    const vx =
+      p.x - estado.prevX;
 
-        0,
-        1
+    const vy =
+      p.y - estado.prevY;
 
+
+    // ---------------------------------------------
+    // PUNTO ANTICIPADO
+    // HACIA DÓNDE VA, NO DÓNDE ESTÁ
+    // ---------------------------------------------
+
+    const objetivoX =
+      p.x +
+      vx * HORIZONTE_ANTICIPACION;
+
+    const objetivoY =
+      p.y +
+      vy * HORIZONTE_ANTICIPACION;
+
+
+    estado.projX =
+      lerp(
+        estado.projX,
+        objetivoX,
+        SUAVIZADO_PROYECCION
+      );
+
+    estado.projY =
+      lerp(
+        estado.projY,
+        objetivoY,
+        SUAVIZADO_PROYECCION
       );
 
 
-    let tam = map(
+    estado.prevX = p.x;
+    estado.prevY = p.y;
 
-      escala,
 
-      0,
-      1,
+    const color =
+      p.mano === 0
+        ? NARANJA
+        : FUCSIA;
 
-      18,
-      52
 
+    const velocidad =
+      dist(
+        0,
+        0,
+        vx,
+        vy
+      );
+
+
+    // ---------------------------------------------
+    // HILO ENTRE EL PRESENTE Y LO ANTICIPADO
+    // ---------------------------------------------
+
+    stroke(
+      color.r,
+      color.g,
+      color.b,
+      90
     );
 
+    strokeWeight(1.2);
+
+    line(
+      p.x,
+      p.y,
+      estado.projX,
+      estado.projY
+    );
 
     noStroke();
 
 
-    fill(
+    // ---------------------------------------------
+    // SIGNO ANTICIPADO
+    // RESPIRA MÁS RÁPIDO CUANTO MÁS RÁPIDO SE MUEVE
+    // ---------------------------------------------
 
+    const pulso =
+      1 +
+      0.15 *
+      sin(
+        frameCount *
+        (0.1 + velocidad * 0.02)
+      );
+
+
+    noFill();
+
+    stroke(
       color.r,
       color.g,
       color.b,
-
-      20
-
+      140
     );
 
+    strokeWeight(2);
 
     circle(
-
-      p.x,
-      p.y,
-
-      tam * 2
-
+      estado.projX,
+      estado.projY,
+      TAM_CIRCULO * 0.9 * pulso
     );
 
+    noStroke();
+
+
+    // ---------------------------------------------
+    // PUNTO REAL, EN EL PRESENTE
+    // ---------------------------------------------
 
     fill(
-
-      color.r,
-      color.g,
-      color.b,
-
-      45
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-
-      tam * 1.35
-
-    );
-
-
-    fill(
-
       color.r,
       color.g,
       color.b
-
     );
 
-
     circle(
-
       p.x,
       p.y,
-
-      tam
-
-    );
-
-
-    let brillo = map(
-
-      escala,
-
-      0,
-      1,
-
-      20,
-      150
-
-    );
-
-
-    fill(
-
-      255,
-      255,
-      255,
-
-      brillo
-
-    );
-
-
-    circle(
-
-      p.x,
-      p.y,
-
-      tam * 0.22
-
+      TAM_CIRCULO
     );
 
   }
@@ -2680,94 +3062,54 @@ function expectativa() {
 }
 
 
-// ============================================================
-// DIBUJAR FORMAS
-// ============================================================
+// =====================================================
+// INDICADOR DE EXPERIENCIA (NUEVA BARRA DE TIEMPO)
+// =====================================================
 
-function dibujarForma(
+function dibujarBarraTiempo() {
 
-  forma,
-  x,
-  y,
-  tam
+  const total = 9;
+  const diametro = 6;
+  const espaciado = 16;
+  const anchoTotal = (total - 1) * espaciado;
+  const inicioX = (width - anchoTotal) / 2;
+  const y = height - 25;
 
-) {
-
-  if (
-    forma === "circle"
-  ) {
-
-    circle(
-
-      x,
-      y,
-      tam
-
-    );
-
-  }
-
-
-  else if (
-    forma === "square"
-  ) {
-
-    rectMode(CENTER);
-
-
-    square(
-
-      x,
-      y,
-      tam
-
-    );
-
-  }
-
-
-  else {
-
-    triangle(
-
-      x,
-      y - tam / 2,
-
-      x - tam / 2,
-      y + tam / 2,
-
-      x + tam / 2,
-      y + tam / 2
-
-    );
-
+  noStroke();
+  for (let i = 0; i < total; i++) {
+    if (i === experienciaActual) {
+      fill(255, 230);
+      circle(inicioX + i * espaciado, y, diametro * 1.4);
+    } else {
+      fill(255, 60);
+      circle(inicioX + i * espaciado, y, diametro);
+    }
   }
 
 }
 
 
-// ============================================================
-// EASING
-// ============================================================
+// =====================================================
+// CAMBIO AUTOMÁTICO (DESACTIVADO)
+// =====================================================
 
-function easeInOut(t) {
+function controlarCambioAutomatico() {
 
-  return t * t * (3 - 2 * t);
+  // El cambio automático fue desactivado.
+  // Ahora el avance entre interfaces se realiza mediante el botón "Siguiente".
 
 }
 
 
-// ============================================================
-// CAMBIO DE TAMAÑO
-// ============================================================
+// =====================================================
+// REDIMENSIONAR
+// =====================================================
 
 function windowResized() {
 
   resizeCanvas(
-
     windowWidth,
     windowHeight
-
   );
 
 }
