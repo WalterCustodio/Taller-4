@@ -142,6 +142,11 @@ let contactosHerencia = {};
 let circulosCaducidad = [];
 let prevYemasCaducidad = {};
 
+// NUEVO:
+// La caducidad permanece apagada hasta que
+// dos yemas de manos diferentes chocan.
+let caducidadActivada = false;
+
 // =====================================================
 // IDENTIDAD
 // =====================================================
@@ -181,13 +186,9 @@ let colaboracionTiempoObjetivo = 0;
 let colaboracionBrillando =
   false;
 
-// Este estado evita que al entrar a la experiencia
-// un contacto que ya estaba ocurriendo cree un hijito.
 let colaboracionContactosInicializados =
   false;
 
-// Permite crear solamente UN hijito por contacto.
-// Para crear otro hay que soltar y volver a tocar.
 let colaboracionPuedeCrear =
   true;
 
@@ -360,10 +361,6 @@ function draw(){
 
   background(5);
 
-  // ---------------------------------------------------
-  // HOME
-  // ---------------------------------------------------
-
   if(enHome){
 
     dibujarHome();
@@ -371,15 +368,7 @@ function draw(){
     return;
   }
 
-  // ---------------------------------------------------
-  // ACTUALIZAR YEMAS
-  // ---------------------------------------------------
-
   actualizarYemas();
-
-  // ---------------------------------------------------
-  // EXPERIENCIAS
-  // ---------------------------------------------------
 
   switch(
     experienciaActual
@@ -422,10 +411,6 @@ function draw(){
       break;
 
   }
-
-  // ---------------------------------------------------
-  // UI
-  // ---------------------------------------------------
 
   dibujarTituloExperiencia();
 
@@ -643,10 +628,6 @@ function dibujarCirculosHome(
       1
     );
 
-  // ---------------------------------------------------
-  // PRIMERA MANO
-  // ---------------------------------------------------
-
   for(
     let i=0;
     i<5;
@@ -674,10 +655,6 @@ function dibujarCirculosHome(
     );
 
   }
-
-  // ---------------------------------------------------
-  // SEGUNDA MANO
-  // ---------------------------------------------------
 
   for(
     let i=0;
@@ -753,6 +730,7 @@ function dibujarCirculoHome(
     y,
     tam
   );
+
 }
 
 
@@ -767,6 +745,7 @@ function anchoSeguroHome(){
     0.7,
     1
   );
+
 }
 
 
@@ -830,10 +809,6 @@ function actualizarYemas(){
       clavesActuales[clave] =
         true;
 
-      // ------------------------------------------------
-      // CREAR SUAVIZADO
-      // ------------------------------------------------
-
       if(
         !yemasSuavizadas[clave]
       ){
@@ -881,10 +856,6 @@ function actualizarYemas(){
 
   }
 
-  // ---------------------------------------------------
-  // BORRAR YEMAS QUE YA NO EXISTEN
-  // ---------------------------------------------------
-
   for(
     const clave in
     yemasSuavizadas
@@ -930,10 +901,6 @@ function dibujarGuiaManos(){
   const centroDerecha =
     width * 0.70;
 
-  // ---------------------------------------------------
-  // MANO AZUL
-  // ---------------------------------------------------
-
   for(
     let i=0;
     i<guiaMano.length;
@@ -963,10 +930,6 @@ function dibujarGuiaManos(){
     );
 
   }
-
-  // ---------------------------------------------------
-  // MANO AMARILLA
-  // ---------------------------------------------------
 
   for(
     let i=0;
@@ -1041,6 +1004,7 @@ function dibujarTituloExperiencia(){
   );
 
   textStyle(NORMAL);
+
 }
 
 
@@ -1099,6 +1063,7 @@ function dibujarBotonVolver(){
     x,
     y
   );
+
 }
 
 
@@ -1161,6 +1126,7 @@ function dibujarBotonSiguiente(){
   );
 
   textStyle(NORMAL);
+
 }
 
 
@@ -1179,6 +1145,7 @@ function keyPressed(){
     enHome = true;
 
     return;
+
   }
 
   if(enHome){
@@ -1224,10 +1191,6 @@ function keyPressed(){
 
 function mouseClicked(){
 
-  // ---------------------------------------------------
-  // HOME
-  // ---------------------------------------------------
-
   if(enHome){
 
     const columnas = 3;
@@ -1269,11 +1232,8 @@ function mouseClicked(){
     }
 
     return;
-  }
 
-  // ---------------------------------------------------
-  // VOLVER
-  // ---------------------------------------------------
+  }
 
   if(
     dist(
@@ -1287,11 +1247,8 @@ function mouseClicked(){
     enHome = true;
 
     return;
-  }
 
-  // ---------------------------------------------------
-  // SIGUIENTE
-  // ---------------------------------------------------
+  }
 
   if(
     dist(
@@ -1305,6 +1262,7 @@ function mouseClicked(){
     siguienteExperiencia();
 
     return;
+
   }
 
 }
@@ -1327,6 +1285,7 @@ function siguienteExperiencia(){
   }
 
   iniciarExperiencia();
+
 }
 
 
@@ -1347,6 +1306,7 @@ function experienciaAnterior(){
   }
 
   iniciarExperiencia();
+
 }
 
 
@@ -1387,6 +1347,11 @@ function iniciarExperiencia(){
   circulosCaducidad = [];
 
   prevYemasCaducidad = {};
+
+  // IMPORTANTE:
+  // cada vez que entramos empieza sin caducidad.
+  // Se activa recién cuando chocan dos yemas.
+  caducidadActivada = false;
 
   // ---------------------------------------------------
   // IDENTIDAD
@@ -1474,6 +1439,7 @@ function iniciarExperiencia(){
   // ---------------------------------------------------
 
   crearPatronExpectativa();
+
 }
 
 
@@ -1496,6 +1462,7 @@ function colorPorMano(
   }
 
   return colorB;
+
 }
 
 
@@ -1583,6 +1550,7 @@ function obtenerCentroMano(
       puntos.length
 
   };
+
 }
 
 
@@ -1616,6 +1584,7 @@ function manosEnContacto(){
     );
 
   return distancia < 180;
+
 }
 
 
@@ -1788,6 +1757,7 @@ function memoria(){
     AZUL,
     AMARILLO
   );
+
 }
 
 
@@ -1862,39 +1832,22 @@ function herencia(){
           const cy =
             (a.y+b.y)/2;
 
-          const radioMinimoExclusion =
-            TAM_CIRCULO * 0.3;
+          // Un solo hijito verde
+          herencias.push({
 
-          let demasiadoCerca =
-            herencias.some(
-              h =>
-                dist(
-                  cx,
-                  cy,
-                  h.x,
-                  h.y
-                ) <
-                radioMinimoExclusion
-            );
+            x:cx,
 
-          if(
-            !demasiadoCerca
-          ){
+            y:cy,
 
-            herencias.push({
+            tam:0,
 
-              x:cx,
+            tamFinal:
+              TAM_CIRCULO * 0.8,
 
-              y:cy,
+            tiempoNacimiento:
+              millis()
 
-              tam:0,
-
-              tamFinal:
-                TAM_CIRCULO * 0.8
-
-            });
-
-          }
+          });
 
         }
 
@@ -1909,16 +1862,44 @@ function herencia(){
 
   }
 
+  // El hijito aparece y después desaparece.
   for(
-    let h of herencias
+    let i=herencias.length-1;
+    i>=0;
+    i--
   ){
+
+    const h =
+      herencias[i];
+
+    const edad =
+      millis() -
+      h.tiempoNacimiento;
 
     h.tam =
       lerp(
         h.tam,
         h.tamFinal,
-        0.1
+        0.18
       );
+
+    let alpha = 255;
+
+    // Después de formarse empieza a desaparecer.
+    if(
+      edad > 650
+    ){
+
+      alpha =
+        map(
+          edad,
+          650,
+          1000,
+          255,
+          0
+        );
+
+    }
 
     noStroke();
 
@@ -1926,7 +1907,7 @@ function herencia(){
       VERDE.r,
       VERDE.g,
       VERDE.b,
-      40
+      45 * (alpha/255)
     );
 
     circle(
@@ -1938,7 +1919,8 @@ function herencia(){
     fill(
       VERDE.r,
       VERDE.g,
-      VERDE.b
+      VERDE.b,
+      alpha
     );
 
     circle(
@@ -1947,12 +1929,24 @@ function herencia(){
       h.tam
     );
 
+    if(
+      edad >= 1000
+    ){
+
+      herencias.splice(
+        i,
+        1
+      );
+
+    }
+
   }
 
   dibujarYemas(
     AZUL,
     AMARILLO
   );
+
 }
 
 
@@ -1972,53 +1966,99 @@ function caducidad(){
 
   }
 
-  let manoEnMovimiento =
+  // ===================================================
+  // PRIMERO: BUSCAR CHOQUE DE YEMAS
+  // ===================================================
+
+  let choque =
     false;
 
   for(
-    let p of yemas
+    let i=0;
+    i<yemas.length;
+    i++
   ){
 
-    const clave =
-      `${p.mano}-${p.dedo}`;
+    for(
+      let j=i+1;
+      j<yemas.length;
+      j++
+    ){
 
-    const prev =
-      prevYemasCaducidad[clave];
+      const a =
+        yemas[i];
 
-    if(prev){
+      const b =
+        yemas[j];
 
-      const d =
+      // Tiene que ser entre manos diferentes.
+      if(
+        a.mano === b.mano
+      ){
+
+        continue;
+
+      }
+
+      const distancia =
         dist(
-          p.x,
-          p.y,
-          prev.x,
-          prev.y
+          a.x,
+          a.y,
+          b.x,
+          b.y
         );
 
       if(
-        d > 2.2
+        distancia <
+        TAM_CIRCULO * 0.9
       ){
 
-        manoEnMovimiento =
+        choque =
           true;
 
       }
 
     }
 
-    prevYemasCaducidad[clave] = {
+  }
 
-      x:p.x,
-      y:p.y
+  // ===================================================
+  // EL CHOQUE ACTIVA LA CADUCIDAD
+  // ===================================================
 
-    };
+  if(choque){
+
+    caducidadActivada =
+      true;
 
   }
 
+  // ===================================================
+  // ANTES DEL CHOQUE:
+  // NO SE PIERDE NADA
+  // ===================================================
+
   if(
-    yemas.length > 0 &&
-    manoEnMovimiento &&
-    frameCount % 6 === 0
+    !caducidadActivada
+  ){
+
+    dibujarYemas(
+      AZUL,
+      AMARILLO
+    );
+
+    return;
+
+  }
+
+  // ===================================================
+  // UNA VEZ ACTIVADA:
+  // LOS COSITOS EMPIEZAN A CAER
+  // ===================================================
+
+  if(
+    frameCount % 5 === 0 &&
+    yemas.length > 0
   ){
 
     const origen =
@@ -2058,6 +2098,10 @@ function caducidad(){
     });
 
   }
+
+  // ===================================================
+  // ANIMACIÓN DE CAÍDA
+  // ===================================================
 
   for(
     let i =
@@ -2106,10 +2150,13 @@ function caducidad(){
 
   }
 
+  // Las yemas siguen estando presentes
+  // mientras los cositos se desprenden.
   dibujarYemas(
     AZUL,
     AMARILLO
   );
+
 }
 
 
@@ -2573,10 +2620,6 @@ function empatia(){
 
 function colaboracion(){
 
-  // ---------------------------------------------------
-  // GUÍA
-  // ---------------------------------------------------
-
   if(
     guiaMostradaInteraccion
   ){
@@ -2586,19 +2629,6 @@ function colaboracion(){
     return;
 
   }
-
-  // ---------------------------------------------------
-  // PRIMER FRAME CON MANOS
-  // ---------------------------------------------------
-  //
-  // Si al entrar ya hay dedos juntos,
-  // esos contactos quedan registrados.
-  //
-  // NO se crea ningún hijito.
-  //
-  // Para que nazca uno después:
-  // SOLTAR → VOLVER A TOCAR
-  // ---------------------------------------------------
 
   if(
     !colaboracionContactosInicializados
@@ -2613,11 +2643,6 @@ function colaboracion(){
       false;
 
   }
-
-
-  // ===================================================
-  // BRILLO FINAL
-  // ===================================================
 
   if(
     colaboracionBrillando
@@ -2635,10 +2660,6 @@ function colaboracion(){
     const intensidad =
       0.85 +
       pulso * 0.15;
-
-    // -------------------------------------------------
-    // GLOW GENERAL
-    // -------------------------------------------------
 
     if(
       colaboracionCentroTorre
@@ -2698,11 +2719,6 @@ function colaboracion(){
 
     }
 
-
-    // -------------------------------------------------
-    // TODOS LOS HIJITOS BRILLAN
-    // -------------------------------------------------
-
     for(
       let i=0;
       i<colaboracionHijitos.length;
@@ -2741,8 +2757,6 @@ function colaboracion(){
 
       noStroke();
 
-      // Glow azul
-
       fill(
         AZUL.r,
         AZUL.g,
@@ -2756,8 +2770,6 @@ function colaboracion(){
         h.tam*1.9
       );
 
-      // Glow naranja
-
       fill(
         NARANJA.r,
         NARANJA.g,
@@ -2770,10 +2782,6 @@ function colaboracion(){
         h.y,
         h.tam*1.65
       );
-
-      // -----------------------------------------------
-      // MITAD AZUL
-      // -----------------------------------------------
 
       fill(
         AZUL.r,
@@ -2792,10 +2800,6 @@ function colaboracion(){
         PIE
       );
 
-      // -----------------------------------------------
-      // MITAD NARANJA
-      // -----------------------------------------------
-
       fill(
         NARANJA.r,
         NARANJA.g,
@@ -2812,10 +2816,6 @@ function colaboracion(){
         HALF_PI,
         PIE
       );
-
-      // -----------------------------------------------
-      // CENTRO
-      // -----------------------------------------------
 
       fill(
         255,
@@ -2850,20 +2850,10 @@ function colaboracion(){
 
     }
 
-
-    // -------------------------------------------------
-    // YEMAS
-    // -------------------------------------------------
-
     dibujarYemas(
       AZUL,
       NARANJA
     );
-
-
-    // -------------------------------------------------
-    // TERMINAR BRILLO
-    // -------------------------------------------------
 
     if(
       tiempo >=
@@ -2895,11 +2885,6 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // DETECTAR CONTACTOS ACTUALES
-  // ===================================================
-
   const contactosActuales = [];
 
   for(
@@ -2919,8 +2904,6 @@ function colaboracion(){
 
       const b =
         yemas[j];
-
-      // SOLO ENTRE MANOS DISTINTAS
 
       if(
         a.mano === b.mano
@@ -2956,14 +2939,6 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // SI SE SOLTARON TODOS
-  // ===================================================
-  //
-  // Esto habilita el siguiente hijito.
-  // ===================================================
-
   if(
     contactosActuales.length === 0
   ){
@@ -2973,25 +2948,11 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // NUEVO TOQUE
-  // ===================================================
-  //
-  // Aunque haya 5 o 10 dedos juntos,
-  // SOLO SE CREA UN HIJITO.
-  //
-  // Después queda bloqueado hasta que
-  // TODOS los contactos se suelten.
-  // ===================================================
-
   if(
     colaboracionPuedeCrear &&
     contactosActuales.length > 0 &&
     colaboracionHijitos.length < 4
   ){
-
-    // Tomamos solamente el PRIMER contacto.
 
     const contacto =
       contactosActuales[0];
@@ -3014,11 +2975,6 @@ function colaboracion(){
         b.y
       ) / 2;
 
-
-    // -------------------------------------------------
-    // PRIMER HIJITO
-    // -------------------------------------------------
-
     if(
       colaboracionCentroTorre === null
     ){
@@ -3032,11 +2988,6 @@ function colaboracion(){
       };
 
     }
-
-
-    // -------------------------------------------------
-    // POSICIÓN EN LA TORRE
-    // -------------------------------------------------
 
     const numeroHijito =
       colaboracionHijitos.length;
@@ -3052,22 +3003,15 @@ function colaboracion(){
       numeroHijito *
       separacion;
 
-
-    // -------------------------------------------------
-    // CREAR UN SOLO HIJITO
-    // -------------------------------------------------
-
     colaboracionHijitos.push({
 
       x:cx,
 
       y:cy,
 
-      objetivoX:
-        objetivoX,
+      objetivoX:objetivoX,
 
-      objetivoY:
-        objetivoY,
+      objetivoY:objetivoY,
 
       tam:0,
 
@@ -3076,22 +3020,8 @@ function colaboracion(){
 
     });
 
-
-    // -------------------------------------------------
-    // BLOQUEAR CREACIÓN
-    // -------------------------------------------------
-    //
-    // Aunque siga tocando,
-    // no puede crear otro.
-    // -------------------------------------------------
-
     colaboracionPuedeCrear =
       false;
-
-
-    // -------------------------------------------------
-    // CUARTO HIJITO
-    // -------------------------------------------------
 
     if(
       colaboracionHijitos.length === 4
@@ -3110,17 +3040,11 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // BRILLO PROGRESIVO
-  // ===================================================
-
   const cantidad =
     colaboracionHijitos.length;
 
   let intensidadBrillo =
     0;
-
 
   if(
     cantidad === 1
@@ -3144,11 +3068,6 @@ function colaboracion(){
       0.50;
 
   }
-
-
-  // ===================================================
-  // GLOW DE LA TORRE
-  // ===================================================
 
   if(
     cantidad > 0 &&
@@ -3206,11 +3125,6 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // DIBUJAR HIJITOS
-  // ===================================================
-
   for(
     let i=0;
     i<colaboracionHijitos.length;
@@ -3247,11 +3161,6 @@ function colaboracion(){
         i*0.5
       );
 
-
-    // -------------------------------------------------
-    // GLOW AZUL
-    // -------------------------------------------------
-
     noStroke();
 
     fill(
@@ -3273,11 +3182,6 @@ function colaboracion(){
       )
     );
 
-
-    // -------------------------------------------------
-    // GLOW NARANJA
-    // -------------------------------------------------
-
     fill(
       NARANJA.r,
       NARANJA.g,
@@ -3296,11 +3200,6 @@ function colaboracion(){
       )
     );
 
-
-    // -------------------------------------------------
-    // MITAD AZUL
-    // -------------------------------------------------
-
     fill(
       AZUL.r,
       AZUL.g,
@@ -3318,11 +3217,6 @@ function colaboracion(){
       PIE
     );
 
-
-    // -------------------------------------------------
-    // MITAD NARANJA
-    // -------------------------------------------------
-
     fill(
       NARANJA.r,
       NARANJA.g,
@@ -3339,11 +3233,6 @@ function colaboracion(){
       HALF_PI,
       PIE
     );
-
-
-    // -------------------------------------------------
-    // DIVISIÓN CENTRAL
-    // -------------------------------------------------
 
     stroke(
       255,
@@ -3366,11 +3255,6 @@ function colaboracion(){
 
   }
 
-
-  // ===================================================
-  // YEMAS DE LAS MANOS
-  // ===================================================
-
   dibujarYemas(
     AZUL,
     NARANJA
@@ -3381,12 +3265,6 @@ function colaboracion(){
 
 // =====================================================
 // REGISTRAR CONTACTOS DE COLABORACIÓN
-// =====================================================
-//
-// Se usa al entrar a la experiencia y después del brillo.
-// Sirve para recordar qué dedos YA estaban tocándose.
-//
-// NO crea hijitos.
 // =====================================================
 
 function actualizarContactosColaboracion(){
