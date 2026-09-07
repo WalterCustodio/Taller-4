@@ -132,8 +132,20 @@ let estelas = [];
 // HERENCIA
 // =====================================================
 
-let herencias = [];
+// UN SOLO HIJITO A LA VEZ
+let herenciaHijito = null;
+
+// Contactos actuales
 let contactosHerencia = {};
+
+// Permite crear un nuevo hijito
+// solamente después de soltar el contacto.
+let herenciaPuedeCrear = true;
+
+const DURACION_HIJITO_HERENCIA = 1000;
+
+const UMBRAL_CONTACTO_HERENCIA =
+  TAM_CIRCULO * 0.82;
 
 // =====================================================
 // CADUCIDAD
@@ -142,9 +154,6 @@ let contactosHerencia = {};
 let circulosCaducidad = [];
 let prevYemasCaducidad = {};
 
-// NUEVO:
-// La caducidad permanece apagada hasta que
-// dos yemas de manos diferentes chocan.
 let caducidadActivada = false;
 
 // =====================================================
@@ -366,9 +375,13 @@ function draw(){
     dibujarHome();
 
     return;
+
   }
 
   actualizarYemas();
+
+  // MARCO DE LA EXPERIENCIA
+  dibujarMarcoExperiencia();
 
   switch(
     experienciaActual
@@ -421,6 +434,48 @@ function draw(){
   dibujarBarraTiempo();
 
   controlarCambioAutomatico();
+
+}
+
+
+// =====================================================
+// MARCO DE EXPERIENCIA
+// =====================================================
+
+function dibujarMarcoExperiencia(){
+
+  const margenX = 22;
+  const margenSuperior = 72;
+  const margenInferior = 45;
+
+  const color =
+    colorTituloConcepto(
+      experienciaActual
+    );
+
+  push();
+
+  noFill();
+
+  stroke(
+    color.r,
+    color.g,
+    color.b,
+    90
+  );
+
+  strokeWeight(1.5);
+
+  rect(
+    margenX,
+    margenSuperior,
+    width - margenX * 2,
+    height - margenSuperior - margenInferior,
+    10
+  );
+
+  pop();
+
 }
 
 
@@ -476,8 +531,7 @@ function dibujarHome(){
       fila * altoCelda &&
 
       mouseY <
-      (fila+1) *
-      altoCelda;
+      (fila+1) * altoCelda;
 
     dibujarCirculosHome(
       i,
@@ -573,6 +627,7 @@ function colorTituloConcepto(
   }
 
   return FUCSIA;
+
 }
 
 
@@ -1336,9 +1391,11 @@ function iniciarExperiencia(){
   // HERENCIA
   // ---------------------------------------------------
 
-  herencias = [];
+  herenciaHijito = null;
 
   contactosHerencia = {};
+
+  herenciaPuedeCrear = true;
 
   // ---------------------------------------------------
   // CADUCIDAD
@@ -1348,9 +1405,6 @@ function iniciarExperiencia(){
 
   prevYemasCaducidad = {};
 
-  // IMPORTANTE:
-  // cada vez que entramos empieza sin caducidad.
-  // Se activa recién cuando chocan dos yemas.
   caducidadActivada = false;
 
   // ---------------------------------------------------
@@ -1777,11 +1831,24 @@ function herencia(){
 
   }
 
+  // ===================================================
+  // BUSCAR SOLAMENTE EL PELLIZCO MÁS CERCANO
+  // ENTRE UNA MANO Y LA OTRA
+  // ===================================================
+
+  let contactoMasCercano = null;
+
+  let distanciaMinima =
+    Infinity;
+
   for(
     let i=0;
     i<yemas.length;
     i++
   ){
+
+    const a =
+      yemas[i];
 
     for(
       let j=i+1;
@@ -1789,12 +1856,10 @@ function herencia(){
       j++
     ){
 
-      const a =
-        yemas[i];
-
       const b =
         yemas[j];
 
+      // Tiene que ser una yema de cada mano
       if(
         a.mano === b.mano
       ){
@@ -1811,50 +1876,22 @@ function herencia(){
           b.y
         );
 
-      const clave =
-        `${i}-${j}`;
-
+      // Solo nos interesa la pareja más cercana
       if(
         distancia <
-        TAM_CIRCULO
+        distanciaMinima
       ){
 
-        if(
-          !contactosHerencia[clave]
-        ){
+        distanciaMinima =
+          distancia;
 
-          contactosHerencia[clave] =
-            true;
+        contactoMasCercano = {
 
-          const cx =
-            (a.x+b.x)/2;
+          a:a,
 
-          const cy =
-            (a.y+b.y)/2;
+          b:b
 
-          // Un solo hijito verde
-          herencias.push({
-
-            x:cx,
-
-            y:cy,
-
-            tam:0,
-
-            tamFinal:
-              TAM_CIRCULO * 0.8,
-
-            tiempoNacimiento:
-              millis()
-
-          });
-
-        }
-
-      }else{
-
-        contactosHerencia[clave] =
-          false;
+        };
 
       }
 
@@ -1862,30 +1899,121 @@ function herencia(){
 
   }
 
-  // El hijito aparece y después desaparece.
-  for(
-    let i=herencias.length-1;
-    i>=0;
-    i--
+  // ===================================================
+  // ¿HAY PELLIZCO?
+  // ===================================================
+
+  const hayContacto =
+    contactoMasCercano !== null &&
+    distanciaMinima <
+      UMBRAL_CONTACTO_HERENCIA;
+
+  // ===================================================
+  // SI NO HAY CONTACTO:
+  // HABILITAMOS UN NUEVO PELLIZCO
+  // ===================================================
+
+  if(
+    !hayContacto
+  ){
+
+    herenciaPuedeCrear =
+      true;
+
+    contactosHerencia = {};
+
+  }
+
+  // ===================================================
+  // SI HAY PELLIZCO:
+  // CREAR SOLO UN HIJITO
+  // ===================================================
+
+  if(
+    hayContacto &&
+    herenciaPuedeCrear &&
+    herenciaHijito === null
+  ){
+
+    const a =
+      contactoMasCercano.a;
+
+    const b =
+      contactoMasCercano.b;
+
+    const cx =
+      (a.x + b.x) / 2;
+
+    const cy =
+      (a.y + b.y) / 2;
+
+    herenciaHijito = {
+
+      x:cx,
+
+      y:cy,
+
+      tam:0,
+
+      tamFinal:
+        TAM_CIRCULO * 0.82,
+
+      tiempoNacimiento:
+        millis()
+
+    };
+
+    // Mientras mantenga el pellizco
+    // NO puede aparecer otro.
+    herenciaPuedeCrear =
+      false;
+
+  }
+
+  // ===================================================
+  // ANIMAR HIJITO
+  // ===================================================
+
+  if(
+    herenciaHijito !== null
   ){
 
     const h =
-      herencias[i];
+      herenciaHijito;
 
     const edad =
       millis() -
       h.tiempoNacimiento;
 
-    h.tam =
-      lerp(
-        h.tam,
-        h.tamFinal,
-        0.18
-      );
+    // Crecimiento
+    if(
+      edad < 450
+    ){
 
+      const progreso =
+        constrain(
+          edad / 450,
+          0,
+          1
+        );
+
+      h.tam =
+        lerp(
+          0,
+          h.tamFinal,
+          easeOut(progreso)
+        );
+
+    }else{
+
+      h.tam =
+        h.tamFinal;
+
+    }
+
+    // Desaparición
     let alpha = 255;
 
-    // Después de formarse empieza a desaparecer.
     if(
       edad > 650
     ){
@@ -1894,28 +2022,30 @@ function herencia(){
         map(
           edad,
           650,
-          1000,
+          DURACION_HIJITO_HERENCIA,
           255,
           0
         );
 
     }
 
+    // Glow
     noStroke();
 
     fill(
       VERDE.r,
       VERDE.g,
       VERDE.b,
-      45 * (alpha/255)
+      35 * (alpha / 255)
     );
 
     circle(
       h.x,
       h.y,
-      h.tam * 1.8
+      h.tam * 1.9
     );
 
+    // Hijito
     fill(
       VERDE.r,
       VERDE.g,
@@ -1929,23 +2059,42 @@ function herencia(){
       h.tam
     );
 
+    // Cuando termina desaparece
     if(
-      edad >= 1000
+      edad >=
+      DURACION_HIJITO_HERENCIA
     ){
 
-      herencias.splice(
-        i,
-        1
-      );
+      herenciaHijito =
+        null;
 
     }
 
   }
 
+  // ===================================================
+  // LAS YEMAS ORIGINALES SIGUEN
+  // ===================================================
+
   dibujarYemas(
     AZUL,
     AMARILLO
   );
+
+}
+
+
+// =====================================================
+// EASE OUT
+// =====================================================
+
+function easeOut(t){
+
+  return 1 -
+    pow(
+      1-t,
+      3
+    );
 
 }
 
@@ -1965,10 +2114,6 @@ function caducidad(){
     return;
 
   }
-
-  // ===================================================
-  // PRIMERO: BUSCAR CHOQUE DE YEMAS
-  // ===================================================
 
   let choque =
     false;
@@ -1991,7 +2136,6 @@ function caducidad(){
       const b =
         yemas[j];
 
-      // Tiene que ser entre manos diferentes.
       if(
         a.mano === b.mano
       ){
@@ -2022,21 +2166,12 @@ function caducidad(){
 
   }
 
-  // ===================================================
-  // EL CHOQUE ACTIVA LA CADUCIDAD
-  // ===================================================
-
   if(choque){
 
     caducidadActivada =
       true;
 
   }
-
-  // ===================================================
-  // ANTES DEL CHOQUE:
-  // NO SE PIERDE NADA
-  // ===================================================
 
   if(
     !caducidadActivada
@@ -2050,11 +2185,6 @@ function caducidad(){
     return;
 
   }
-
-  // ===================================================
-  // UNA VEZ ACTIVADA:
-  // LOS COSITOS EMPIEZAN A CAER
-  // ===================================================
 
   if(
     frameCount % 5 === 0 &&
@@ -2098,10 +2228,6 @@ function caducidad(){
     });
 
   }
-
-  // ===================================================
-  // ANIMACIÓN DE CAÍDA
-  // ===================================================
 
   for(
     let i =
@@ -2150,8 +2276,6 @@ function caducidad(){
 
   }
 
-  // Las yemas siguen estando presentes
-  // mientras los cositos se desprenden.
   dibujarYemas(
     AZUL,
     AMARILLO
